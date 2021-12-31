@@ -12,7 +12,7 @@ Copyright (c) 2021  Denis Kuzmin <x-3F@outlook.com> github/3F
 
 [ 「 <sub>@</sub> ☕ 」 ](https://3F.github.io/Donation/) [![License](https://img.shields.io/badge/License-MIT-74A5C2.svg)](https://github.com/3F/netfx4sdk/blob/master/License.txt)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/8ac1021k385eyubm/branch/master?svg=true)](https://ci.appveyor.com/project/3Fs/netfx4sdk/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/7d2jae48fii2m99o/branch/master?svg=true)](https://ci.appveyor.com/project/3Fs/netfx4sdk/branch/master)
 [![release](https://img.shields.io/github/release/3F/netfx4sdk.svg)](https://github.com/3F/netfx4sdk/releases/latest)
 
 ## Why netfx4sdk ?

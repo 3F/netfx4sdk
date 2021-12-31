@@ -3,8 +3,8 @@ netfx4sdk - https://github.com/3F/netfx4sdk
 - - - - - - - - - - - - - - - - - - - - -  
 
 
-[v1.0] 2021.??.??
+[v1.0] 2021.12.31
 
     * First version. Two modes.
-      .NET Framework 4.0 Developer Pack (SDK) support.
+      .NET Framework 4.0 Developer Pack (SDK) for Visual Studio 2022+
 
