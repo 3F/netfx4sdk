@@ -1,8 +1,8 @@
 # [netfx4sdk](https://github.com/3F/netfx4sdk)
 
-A hack for dev environments to provide *.NET Framework 4.0* Developer Pack (SDK) support for modern versions of the Visual Studio 2022+ or another.
+A hack for dev environments to provide *.NET Framework 4.0* Developer Pack (SDK) support for modern Visual Studio 2022 / MSBuild 17 / or other tools.
 
-It doesn't require installation of outdated Visual Studio such as VS2019.
+It doesn't require installation of outdated Visual Studio such as VS2019 and related.
 
 Two modes. Pure batch-scripts. Based on [hMSBuild](https://github.com/3F/hMSBuild) + [GetNuTool core](https://github.com/3F/GetNuTool)
 
@@ -21,11 +21,13 @@ Microsoft officially dropped support of the **Developer Pack** (SDK) for .NET Fr
 
 * Now it can only be a **Runtime** version: https://dotnet.microsoft.com/en-us/download/visual-studio-sdks
 
-Means you [can't simply **build** anything](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121) along with pure VS2020 (eg. [VM image, clean VS2022 env](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121))
+Means you [can't simply **build** anything](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121) along with pure VS2022 (eg. [VM image, clean VS2022 env](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121))
 
 > MSB3644: The reference assemblies for .NETFramework,Version=v4.0 were not found. To resolve this, **install the Developer Pack** (SDK/Targeting Pack) for this framework version or retarget your application. You can (\*no, you can't) download .NET Framework Developer Packs at https://aka.ms/msbuild/developerpacks
 
-However, *netfx4sdk* can help you!
+But *netfx4sdk* will try to eliminate this artificial limitation by a single command,
+
+* Here's [**result**](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42060343#L6) using *netfx4sdk 1.0* for the same clean VS2022 VM image above.
 
 ## Usage
 
