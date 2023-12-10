@@ -35,6 +35,7 @@ echo   * pkg      - Alias to `package`
 echo.
 echo  -force    - Aggressive behavior when applying etc.
 echo  -rollback - Rollback applied modifications.
+echo  -global   - To use the global toolset instead of the local, like hMSBuild.
 echo.
 echo  -pkg-version {arg} - Specific package version. Where {arg}:
 echo      * 1.0.2 ...
@@ -79,6 +80,7 @@ set "kDebug="
 set "kMode="
 set "kRollback="
 set "kForce="
+set "kGlobal="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -126,6 +128,11 @@ set key=!arg[%idx%]!
         @echo $-version-$
         goto endpoint
 
+    ) else if [!key!]==[-global] (
+
+        set kGlobal=1
+
+        goto continue
     ) else if [!key!]==[-force] ( 
 
         set kForce=1
@@ -224,7 +231,10 @@ if "%kMode%"=="sys" (
     set opkg=%~nx0.%vpkg%
     if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
 
-    call .\hMSBuild -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
+    if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
+    if defined kDebug set engine=!engine! -debug
+
+    call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
 
     set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
     call :dbgprint "dpkg " dpkg
