@@ -75,6 +75,7 @@ set "kForce="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
+set /a ERROR_PATH_NOT_FOUND=3
 set /a ERROR_NO_MODE=1000
 set /a ERROR_ENV_W=1001
 set /a ERROR_ROLLBACK=1100
@@ -177,12 +178,18 @@ if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
 if "%kMode%"=="sys" (
     
     echo Apply hack using assemblies for windows ...
-    call :xcp "%tdir%" "%rdir%"
 
-    for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64') do set lDir=%%i
+    set "lDir="
+    for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
+        if not defined lDir (set lDir=%%i) else set /a EXIT_CODE=%%i
+    )
+
+    if not !EXIT_CODE! == 0 goto endpoint
+    call :xcp "%tdir%" "%rdir%" || goto endpoint
+
     set lDir=!lDir:msbuild.exe=!
-
     call :dbgprint "lDir " lDir
+    if not exist "%lDir%" (set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
     mkdir "%tdir%" 2>nul
     for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
@@ -235,7 +242,9 @@ exit /B !EXIT_CODE!
 set "src=%~1" & set "dst=%~2"
 
     call :dbgprint "xcp " src dst
-    xcopy /E/I/Q/H/K/O/X/B "%src%" "%dst%" >nul || ( set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint )
+    set _x=xcopy "%src%" "%dst%" /E/I/Q/H/K/O/X
+    :: Invalid switch - /B in older xcopy
+    %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
 exit /B 0
 :: :xcp
 
