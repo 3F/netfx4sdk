@@ -249,7 +249,7 @@ exit /B 0
 :: :xcp
 
 :warn {in:msg}
-echo   [*] WARN: %~1
+echo   [*] WARN: %~1 >&2
 exit /B 0
 
 :dbgprint {in:str} [{in:uneval1}, [{in:uneval2}]]
