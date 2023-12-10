@@ -1,7 +1,7 @@
 @echo off & echo Incomplete script. Compile it first via 'build.bat' - github.com/3F/netfx4sdk 1>&2 & exit /B 1
 
 :: netfx4sdk $-version-$
-:: Copyright (c) 2021  Denis Kuzmin [ x-3F@outlook.com ] github/3F
+:: Copyright (c) 2021-2023  Denis Kuzmin {x-3F@outlook.com} github/3F
 :: Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
 
 set "dp0=%~dp0"
@@ -21,7 +21,7 @@ goto commands
 
 echo.
 @echo netfx4sdk $-version-$
-@echo Copyright (c) 2021  Denis Kuzmin [ x-3F@outlook.com ] github/3F
+@echo Copyright (c) 2021-2023  Denis Kuzmin ^<x-3F@outlook.com^> github/3F
 @echo Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
 echo.
 echo .........
@@ -35,15 +35,15 @@ echo   * pkg      - Alias to `package`
 echo.
 echo  -force    - Aggressive behavior when applying etc.
 echo  -rollback - Rollback applied modifications.
-echo  -global   - To use the global toolset instead of the local, like hMSBuild.
+echo  -global   - To use the global toolset, like hMSBuild.
 echo.
 echo  -pkg-version {arg} - Specific package version. Where {arg}:
 echo      * 1.0.2 ...
-echo      * latest - (keyword) To get latest version;
+echo      * latest - (keyword) To use latest version;
 echo.
-echo  -debug        - To show debug information.
-echo  -version      - Display version of %~nx0.
-echo  -help         - Display this help. Aliases: -help -h -?
+echo  -debug    - To show debug information.
+echo  -version  - Display version of %~nx0.
+echo  -help     - Display this help. Aliases: -help -h -?
 echo. 
 echo ...........
 echo About modes
@@ -68,6 +68,7 @@ echo.
 echo netfx4sdk -mode sys
 echo netfx4sdk -rollback
 echo netfx4sdk -debug -force -mode package
+echo netfx4sdk -mode pkg -pkg-version 1.0.2
 
 goto endpoint
 

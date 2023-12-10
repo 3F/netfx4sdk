@@ -2,8 +2,27 @@
 netfx4sdk - https://github.com/3F/netfx4sdk
 - - - - - - - - - - - - - - - - - - - - -  
 
+[1.1] 2023.12.10
+    
+    * FIXED: Issue #3 incorrect -mode sys handling on Windows XP.
+    
+    * FIXED: `Invalid switch - /B` in older xcopy. Part of issue #3.
+    
+    * NEW: Implemented `-pkg-version` to set specific package version.
+    
+    * NEW: Storing multiple versions in a packages folder.
+    
+    * NEW: `pkg` and `system` mode aliases.
+    
+    * NEW: `-global` key to use the global toolset instead of the local,
+           like hMSBuild.
+    
+    * CHANGED: Redirected warn messages into stderr stream.
+    
+    * CHANGED: Default remote package 1.0.2 up to 1.0.3.
+               To use the latest version, call `-pkg-version latest`
 
-[v1.0] 2021.12.31
+[1.0] 2021.12.31
 
     * First version. Two modes.
       .NET Framework 4.0 Developer Pack (SDK) for Visual Studio 2022+
