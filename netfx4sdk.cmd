@@ -73,7 +73,7 @@ goto endpoint
 :commands
 
 set "tfm=v4.0"
-set "vpkg=1.0.2"
+set "vpkg=1.0.3"
 
 set "kDebug="
 set "kMode="
@@ -221,10 +221,12 @@ if "%kMode%"=="sys" (
     set npkg=Microsoft.NETFramework.ReferenceAssemblies.net40
     echo Apply `!npkg!` package ...
 
+    set opkg=%~nx0.%vpkg%
     if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
-    call .\hMSBuild -GetNuTool /p:ngpackages="!npkg!/%vpkg%:%~nx0"
 
-    set "dpkg=packages\%~nx0\build\.NETFramework\%tfm%"
+    call .\hMSBuild -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
+
+    set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
     call :dbgprint "dpkg " dpkg
 
     if not exist "!dpkg!" (
