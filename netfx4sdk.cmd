@@ -28,11 +28,18 @@ echo .........
 echo Arguments
 echo.
 echo  -mode {value}
-echo    * sys       - (Recommended) Hack using assemblies for windows.
-echo    * package   - Apply obsolete remote package. Read [About modes] below.
+echo   * system   - (Recommended) Hack using assemblies for windows.
+echo   * package  - Apply obsolete remote package. Read [About modes] below.
+echo   * sys      - Alias to `system`
+echo   * pkg      - Alias to `package`
 echo.
-echo  -force        - Aggressive behavior when applying etc.
-echo  -rollback     - Rollback applied modifications.
+echo  -force    - Aggressive behavior when applying etc.
+echo  -rollback - Rollback applied modifications.
+echo.
+echo  -pkg-version {arg} - Specific package version. Where {arg}:
+echo      * 1.0.2 ...
+echo      * latest - (keyword) To get latest version;
+echo.
 echo  -debug        - To show debug information.
 echo  -version      - Display version of %~nx0.
 echo  -help         - Display this help. Aliases: -help -h -?
@@ -98,13 +105,20 @@ set key=!arg[%idx%]!
         goto continue
     ) else if [!key!]==[-mode] ( set /a "idx+=1" & call :eval arg[!idx!] v
         
-        if not "!v!"=="sys" if not "!v!"=="package" goto errkey
-        set kMode=!v!
+        if not "!v!"=="sys" if not "!v!"=="system" if not "!v!"=="pkg" if not "!v!"=="package" goto errkey
+
+        if "!v!"=="system" ( set "kMode=sys" ) else if "!v!"=="package" ( set "kMode=pkg" ) else set "kMode=!v!"
 
         goto continue
     ) else if [!key!]==[-rollback] (
         
         set kRollback=1
+
+        goto continue
+    ) else if [!key!]==[-pkg-version] ( set /a "idx+=1" & call :eval arg[!idx!] v
+
+        set vpkg=!v!
+        call :dbgprint "set package version:" v
 
         goto continue
     ) else if [!key!]==[-version] ( 
@@ -181,7 +195,7 @@ if "%kMode%"=="sys" (
 
     set "lDir="
     for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
-        if not defined lDir (set lDir=%%i) else set /a EXIT_CODE=%%i
+        if not defined lDir ( set lDir=%%i ) else set /a EXIT_CODE=%%i
     )
 
     if not !EXIT_CODE! == 0 goto endpoint
@@ -189,7 +203,7 @@ if "%kMode%"=="sys" (
 
     set lDir=!lDir:msbuild.exe=!
     call :dbgprint "lDir " lDir
-    if not exist "%lDir%" (set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
+    if not exist "%lDir%" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
     mkdir "%tdir%" 2>nul
     for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
@@ -202,11 +216,12 @@ if "%kMode%"=="sys" (
     echo ^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>> "!xdir!\FullTrust.xml"
 
 
-) else if "%kMode%"=="package" (
+) else if "%kMode%"=="pkg" (
     
     set npkg=Microsoft.NETFramework.ReferenceAssemblies.net40
     echo Apply `!npkg!` package ...
 
+    if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
     call .\hMSBuild -GetNuTool /p:ngpackages="!npkg!/%vpkg%:%~nx0"
 
     set "dpkg=packages\%~nx0\build\.NETFramework\%tfm%"
