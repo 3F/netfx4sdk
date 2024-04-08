@@ -82,6 +82,8 @@ set /a ERROR_FAILED=1
 set /a ERROR_PATH_NOT_FOUND=3
 set /a ERROR_NO_MODE=1000
 set /a ERROR_ENV_W=1001
+set /a ERROR_HMSBUILD_UNSUPPORTED=1002
+set /a ERROR_HMSBUILD_NOT_FOUND=1003
 set /a ERROR_ROLLBACK=1100
 
 set /a idx=0
@@ -192,16 +194,21 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
 
+    if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
+
+    call :invoke engine "-version" || ( set /a EXIT_CODE=%ERROR_HMSBUILD_NOT_FOUND% & goto endpoint )
+    call :getFirstMsg engineVersion & if !engineVersion! LSS 2.4 (
+        set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
+    )
+
     if "%kMode%"=="sys" (
 
         echo Apply hack using assemblies for windows ...
 
-        set "lDir="
-        for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do 2>nul (
-            if not defined lDir ( set "lDir=%%i" ) else set /a EXIT_CODE=%%i
-        )
+        call :invoke engine "-no-less-4 -no-vswhere -no-vs -only-path -notamd64"
+        set /a EXIT_CODE=%ERRORLEVEL% & if !EXIT_CODE! NEQ 0 goto endpoint
 
-        if not !EXIT_CODE! == 0 goto endpoint
+        call :getFirstMsg lDir
         call :xcp "%tdir%" "%rdir%" || goto endpoint
 
         set lDir=!lDir:msbuild.exe=!
@@ -227,9 +234,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set opkg=%~nx0.%vpkg%
         if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
 
-        if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
         if defined kDebug set engine=!engine! -debug
-
         call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
 
         set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
@@ -335,3 +340,34 @@ exit /B 0
     set %2=!_vl!
 exit /B 0
 :: :eval
+
+:invoke
+    ::  (1) - Command via variable.
+    :: &(2) - Input arguments.
+    :: &[3] - Return code.
+    :: !!0+ - Error code from (1)
+
+    set "cmd=!%~1! %~2"
+
+    :: NOTE: Use delayed !cmd! instead of %cmd% inside `for /F` due to
+    :: `=` (equal sign, which cannot be escaped as `^=` when runtime evaluation %cmd%)
+
+    call :dbgprint "invoke: " cmd
+
+    set "cmd=!cmd! 2^>^&1 ^&call echo %%^^ERRORLEVEL%%"
+    set /a msgIdx=0
+
+    for /F "tokens=*" %%i in ('!cmd!') do 2>nul (
+        set /a msgIdx+=1
+        set msg[!msgIdx!]=%%i
+        call :dbgprint "# !msgIdx!  : %%i"
+    )
+
+    if not "%3"=="" set %3=!msg[%msgIdx%]!
+exit /B !msg[%msgIdx%]!
+:: :invoke
+
+:getFirstMsg {out:message}
+    set "%1=!msg[1]!"
+exit /B 0
+:: :getFirstMsg
