@@ -203,7 +203,7 @@ if "%kMode%"=="sys" (
 
     set "lDir="
     for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
-        if not defined lDir ( set lDir=%%i ) else set /a EXIT_CODE=%%i
+        if not defined lDir ( set "lDir=%%i" ) else set /a EXIT_CODE=%%i
     )
 
     if not !EXIT_CODE! == 0 goto endpoint
@@ -211,7 +211,7 @@ if "%kMode%"=="sys" (
 
     set lDir=!lDir:msbuild.exe=!
     call :dbgprint "lDir " lDir
-    if not exist "%lDir%" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
+    if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
     mkdir "%tdir%" 2>nul
     for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
