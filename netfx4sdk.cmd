@@ -259,7 +259,28 @@ goto endpoint
 :: Post-actions
 :endpoint
 
-if not !EXIT_CODE!==0 call :warn "Failed: !EXIT_CODE!"
+if !EXIT_CODE! NEQ 0 (
+    call :warn "Failed: !EXIT_CODE!"
+
+    if !EXIT_CODE! EQU %ERROR_PATH_NOT_FOUND% (
+        call :warn "File or path was not found, use -debug"
+    )
+    else if !EXIT_CODE! EQU %ERROR_NO_MODE% (
+        call :warn "Mode is not specified"
+    )
+    else if !EXIT_CODE! EQU %ERROR_ENV_W% (
+        call :warn "Wrong or unknown data in specified mode"
+    )
+    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED% (
+        call :warn "Unsupported version of hMSBuild"
+    )
+    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_NOT_FOUND% (
+        call :warn "hMSBuild is not found, try -global"
+    )
+    else if !EXIT_CODE! EQU %ERROR_ROLLBACK% (
+        call :warn "Something went wrong. Try to restore manually: %rdir%"
+    )
+)
 exit /B !EXIT_CODE!
 
 
