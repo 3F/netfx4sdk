@@ -197,7 +197,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         echo Apply hack using assemblies for windows ...
 
         set "lDir="
-        for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
+        for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do 2>nul (
             if not defined lDir ( set "lDir=%%i" ) else set /a EXIT_CODE=%%i
         )
 
