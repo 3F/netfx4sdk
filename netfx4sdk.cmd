@@ -1,7 +1,7 @@
 @echo off & echo Incomplete script. Compile it first via 'build.bat' - github.com/3F/netfx4sdk 1>&2 & exit /B 1
 
-:: netfx4sdk $-version-$
-:: Copyright (c) 2021-2023  Denis Kuzmin {x-3F@outlook.com} github/3F
+:: netfx4sdk $core.version$
+:: Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
 :: Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
 
 set "dp0=%~dp0"
@@ -20,12 +20,12 @@ goto commands
 :usage
 
 echo.
-@echo netfx4sdk $-version-$
-@echo Copyright (c) 2021-2023  Denis Kuzmin ^<x-3F@outlook.com^> github/3F
-@echo Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
+echo netfx4sdk $core.version$
+echo Copyright (c) 2021-2024  Denis Kuzmin ^<x-3F@outlook.com^> github/3F
+echo Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
 echo.
-echo .........
-echo Arguments
+echo ....
+echo Keys
 echo.
 echo  -mode {value}
 echo   * system   - (Recommended) Hack using assemblies for windows.
@@ -38,7 +38,7 @@ echo  -rollback - Rollback applied modifications.
 echo  -global   - To use the global toolset, like hMSBuild.
 echo.
 echo  -pkg-version {arg} - Specific package version. Where {arg}:
-echo      * 1.0.2 ...
+echo      * 1.0.3 ...
 echo      * latest - (keyword) To use latest version;
 echo.
 echo  -debug    - To show debug information.
@@ -48,7 +48,7 @@ echo.
 echo ...........
 echo About modes
 echo.
-echo `-mode sys` highly recommended because of
+echo `-mode sys` highly recommended because
 echo  [++] All modules are under windows support.
 echo  [+] It does not require internet connection (portable).
 echo  [+] No decompression required (faster) compared to package mode.
@@ -62,9 +62,7 @@ echo  [-] Requires internet connection to receive ~30 MB via GetNuTool.
 echo  [-] Requires decompression of received data to 178 MB before use.
 echo  [+] Well known official behavior.
 echo.
-echo .......
-echo Samples
-echo.
+echo ...................
 echo netfx4sdk -mode sys
 echo netfx4sdk -rollback
 echo netfx4sdk -debug -force -mode package
@@ -77,11 +75,7 @@ goto endpoint
 set "tfm=v4.0"
 set "vpkg=1.0.3"
 
-set "kDebug="
-set "kMode="
-set "kRollback="
-set "kForce="
-set "kGlobal="
+set "kDebug=" & set "kMode=" & set "kRollback=" & set "kForce=" & set "kGlobal="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -126,7 +120,7 @@ set key=!arg[%idx%]!
         goto continue
     ) else if [!key!]==[-version] ( 
 
-        @echo $-version-$
+        @echo $core.version$
         goto endpoint
 
     ) else if [!key!]==[-global] (
@@ -140,10 +134,11 @@ set key=!arg[%idx%]!
 
         goto continue
     ) else (
+        ::&:
         :errkey
         call :warn "Incorrect key or value for `!key!`"
         set /a EXIT_CODE=%ERROR_FAILED%
-        goto endpoint
+        goto endpoint  ::&:
     )
 
 :continue
@@ -153,101 +148,101 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 :: Main 
 :action
 
-call :dbgprint "run action... " kMode kForce
+    call :dbgprint "run action... " kMode kForce
 
-set devdir=%ProgramFiles(x86)%
-if not exist "%devdir%" set devdir=%ProgramFiles%
-set devdir=%devdir%\Reference Assemblies\Microsoft\Framework\.NETFramework\
+    set devdir=%ProgramFiles(x86)%
+    if not exist "%devdir%" set devdir=%ProgramFiles%
+    set devdir=%devdir%\Reference Assemblies\Microsoft\Framework\.NETFramework\
 
-set tdir=%devdir%%tfm%
-set rdir=%tdir%.%~nx0
+    set tdir=%devdir%%tfm%
+    set rdir=%tdir%.%~nx0
 
-if defined kRollback (
+    if defined kRollback (
 
-    if not exist "%rdir%" (
-        echo There's nothing to rollback.
+        if not exist "%rdir%" (
+            echo There's nothing to rollback.
+            goto endpoint
+        )
+
+        rmdir /Q/S "%tdir%" 2>nul
+        call :dbgprint "ren " rdir tfm
+        ( ren "%rdir%" %tfm% 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
+
+        echo Rollback completed.
         goto endpoint
+
     )
 
-    rmdir /Q/S "%tdir%" 2>nul
-    call :dbgprint "ren " rdir tfm
-    ( ren "%rdir%" %tfm% 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
-
-    echo Rollback completed.
-    goto endpoint
-
-)
-
-if exist "%rdir%" (
-    echo %~nx0 has already been applied before. There's nothing to do anymore.
-    echo Use `-rollback` key to re-apply with another mode if needed.
-    exit /B 0
-)
-
-if exist "%tdir%\mscorlib.dll" (
-
-    if not defined kForce (
-        echo The Developer Pack was found successfully. There's nothing to do here at all.
-        echo Use `-force` key to suppress the restriction if you really know what you are doing.
-        set /a EXIT_CODE=%ERROR_SUCCESS% & goto endpoint
-    )
-    call :dbgprint "Suppress found SDK " tdir
-    
-)
-
-if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
-
-if "%kMode%"=="sys" (
-    
-    echo Apply hack using assemblies for windows ...
-
-    set "lDir="
-    for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
-        if not defined lDir ( set "lDir=%%i" ) else set /a EXIT_CODE=%%i
+    if exist "%rdir%" (
+        echo %~nx0 has already been applied before. There's nothing to do anymore.
+        echo Use `-rollback` key to re-apply with another mode if needed.
+        exit /B 0
     )
 
-    if not !EXIT_CODE! == 0 goto endpoint
-    call :xcp "%tdir%" "%rdir%" || goto endpoint
+    if exist "%tdir%\mscorlib.dll" (
 
-    set lDir=!lDir:msbuild.exe=!
-    call :dbgprint "lDir " lDir
-    if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
+        if not defined kForce (
+            echo The Developer Pack was found successfully. There's nothing to do here at all.
+            echo Use `-force` key to suppress the restriction if you really know what you are doing.
+            set /a EXIT_CODE=%ERROR_SUCCESS% & goto endpoint
+        )
+        call :dbgprint "Suppress found SDK " tdir
 
-    mkdir "%tdir%" 2>nul
-    for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
-    for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do mklink "%tdir%\%%i" "!lDir!WPF\%%i" >nul 2>nul
-
-    set "xdir=%tdir%\RedistList" & mkdir "!xdir!" 2>nul
-    echo ^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>> "!xdir!\FrameworkList.xml"
-
-    set "xdir=%tdir%\PermissionSets" & mkdir "!xdir!" 2>nul
-    echo ^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>> "!xdir!\FullTrust.xml"
-
-
-) else if "%kMode%"=="pkg" (
-    
-    set npkg=Microsoft.NETFramework.ReferenceAssemblies.net40
-    echo Apply `!npkg!` package ...
-
-    set opkg=%~nx0.%vpkg%
-    if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
-
-    if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
-    if defined kDebug set engine=!engine! -debug
-
-    call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
-
-    set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
-    call :dbgprint "dpkg " dpkg
-
-    if not exist "!dpkg!" (
-        set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
     )
 
-    ren "%tdir%" %tfm%.%~nx0 2>nul
-    mklink /J "%tdir%" "!dpkg!"
+    if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
 
-)
+    if "%kMode%"=="sys" (
+
+        echo Apply hack using assemblies for windows ...
+
+        set "lDir="
+        for /F "tokens=*" %%i in ('hMSBuild -no-vswhere -no-vs -only-path -notamd64 2^>^&1 ^& call echo %%^^ERRORLEVEL%%') do (
+            if not defined lDir ( set "lDir=%%i" ) else set /a EXIT_CODE=%%i
+        )
+
+        if not !EXIT_CODE! == 0 goto endpoint
+        call :xcp "%tdir%" "%rdir%" || goto endpoint
+
+        set lDir=!lDir:msbuild.exe=!
+        call :dbgprint "lDir " lDir
+        if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
+
+        mkdir "%tdir%" 2>nul
+        for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
+        for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do mklink "%tdir%\%%i" "!lDir!WPF\%%i" >nul 2>nul
+
+        set "xdir=%tdir%\RedistList" & mkdir "!xdir!" 2>nul
+        echo ^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>> "!xdir!\FrameworkList.xml"
+
+        set "xdir=%tdir%\PermissionSets" & mkdir "!xdir!" 2>nul
+        echo ^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>> "!xdir!\FullTrust.xml"
+
+
+    ) else if "%kMode%"=="pkg" (
+
+        set npkg=Microsoft.NETFramework.ReferenceAssemblies.net40
+        echo Apply !npkg! package ...
+
+        set opkg=%~nx0.%vpkg%
+        if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
+
+        if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
+        if defined kDebug set engine=!engine! -debug
+
+        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
+
+        set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
+        call :dbgprint "dpkg " dpkg
+
+        if not exist "!dpkg!" (
+            set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
+        )
+
+        ren "%tdir%" %tfm%.%~nx0 2>nul
+        mklink /J "%tdir%" "!dpkg!"
+
+    )
 
 echo Done.
 
@@ -270,67 +265,73 @@ exit /B !EXIT_CODE!
 set "src=%~1" & set "dst=%~2"
 
     call :dbgprint "xcp " src dst
-    set _x=xcopy "%src%" "%dst%" /E/I/Q/H/K/O/X
+    set _x=xcopy "%src%" "%dst%" /E/I/Q/H/K/O/X  ::&:
     :: Invalid switch - /B in older xcopy
     %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
 exit /B 0
 :: :xcp
 
 :warn {in:msg}
-echo   [*] WARN: %~1 >&2
+    echo   [*] WARN: %~1 >&2
 exit /B 0
+:: :warn
 
 :dbgprint {in:str} [{in:uneval1}, [{in:uneval2}]]
-if defined kDebug (
-    set msgfmt=%1
-    set msgfmt=!msgfmt:~0,-1! 
-    set msgfmt=!msgfmt:~1!
-    echo.[%TIME% ] !msgfmt! !%2! !%3!
-)
+    if defined kDebug (
+        :: NOTE: delayed `dmsg` because symbols like `)`, `(` ... requires protection after expansion. L-32
+        set "dmsg=%~1" & echo [ %TIME% ] !dmsg! !%2! !%3!
+    )
 exit /B 0
 :: :dbgprint
 
 :initargs {in:vname} {in:arguments} {out:index}
-:: Usage: 1- the name for variable; 2- input arguments; 3- max index
+    :: Usage: 1- the name for variable; 2- input arguments; 3- max index
 
-set _ieqargs=!%2!
+    set _ieqargs=!%2!
 
-:: unfortunately, we also need to protect the equal sign '='
-:_eqp
-for /F "tokens=1* delims==" %%a in ("!_ieqargs!") do (
-    if "%%~b"=="" (
-        call :nqa %1 !_ieqargs! %3
-        exit /B 0
+    :: unfortunately, we also need to protect the equal sign '='
+    :_eqp
+    for /F "tokens=1* delims==" %%a in ("!_ieqargs!") do (
+        if "%%~b"=="" (
+
+            call :nqa %1 !_ieqargs! %3 & exit /B 0
+
+        ) else set _ieqargs=%%a E %%b
     )
-    set _ieqargs=%%a #__b_EQ## %%b
-)
-goto _eqp
-:nqa
+    goto _eqp
+    :nqa
 
-set "vname=%~1"
-set /a idx=-1
+    set "vname=%~1"
+    set /a idx=-1
 
-:_initargs
-:: - 
-set /a idx+=1
-set %vname%[!idx!]=%~2
-set %vname%{!idx!}=%2
+    :_initargs
+        :: -
+        set /a idx+=1
+        set %vname%[!idx!]=%~2
+        set %vname%{!idx!}=%2
 
-:: - 
-shift & if not "%~3"=="" goto _initargs
-set /a idx-=1
+        :: NOTE1: `shift & ...` may be evaluated incorrectly without {newline} symbols;
+        ::         Either shift + {newline} + ... + if %~3 ...; or if %~4 ... shift & ...
 
-set %1=!idx!
+        :: NOTE2: %~4 because the next %~3 is reserved for {out:index}
+        if "%~4" NEQ "" shift & goto _initargs
+
+    set %3=!idx!
 exit /B 0
 :: :initargs
 
 :eval {in:unevaluated} {out:evaluated}
-:: Usage: 1- input; 2- evaluated output
+    :: Usage: 1- input; 2- evaluated output
 
-:: delayed evaluation
-set _vl=!%1!
+    :: delayed evaluation
+    set _vl=!%1!  ::&:
 
-set %2=!_vl!
+    :: data from %..% below should not contain double quotes, thus we need to protect this:
 
+    :: set "_vl=%_vl: T =^%"   ::&:
+    :: set "_vl=%_vl: L =^!%"  ::&:
+    :: set _vl=!_vl: E ==!     ::&:
+
+    set %2=!_vl!
 exit /B 0
 :: :eval

@@ -7,10 +7,10 @@ Two modes. Pure batch-scripts. Based on [hMSBuild](https://github.com/3F/hMSBuil
 Allows you to use a deprecated SDK for modern toolsets and IDEs such as VS2022 without installing any other outdated versions of Visual Studio.
 
 ```r
-Copyright (c) 2021-2023  Denis Kuzmin <x-3F@outlook.com> github/3F
+Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
 ```
 
-[ 「 <sub>@</sub> ☕ 」 ](https://3F.github.io/Donation/) [![License](https://img.shields.io/badge/License-MIT-74A5C2.svg)](https://github.com/3F/netfx4sdk/blob/master/License.txt)
+[ 「 ❤ 」 ](https://3F.github.io/fund) [![License](https://img.shields.io/badge/License-MIT-74A5C2.svg)](https://github.com/3F/netfx4sdk/blob/master/License.txt)
 [![Build status](https://ci.appveyor.com/api/projects/status/7d2jae48fii2m99o/branch/master?svg=true)](https://ci.appveyor.com/project/3Fs/netfx4sdk/branch/master)
 [![release](https://img.shields.io/github/release/3F/netfx4sdk.svg)](https://github.com/3F/netfx4sdk/releases/latest)
 
