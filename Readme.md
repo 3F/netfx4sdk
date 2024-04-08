@@ -1,10 +1,10 @@
 # [netfx4sdk](https://github.com/3F/netfx4sdk)
 
-A hack for dev environments in attempt to provide *.NET Framework 4.0* Developer Pack (SDK) support for modern Visual Studio 2022 / MSBuild 17 / or other tools.
+An attempt to provide *.NET Framework 4.0* Developer Pack (SDK) support for modern Visual Studio / MSBuild / etc.
 
-Two modes. Pure batch-scripts. Based on [hMSBuild](https://github.com/3F/hMSBuild) + [GetNuTool core](https://github.com/3F/GetNuTool)
+Two modes! Pure batch-scripts! Portable and Flexible (changes can be easily undone) ! Free and Open !
 
-Allows you to use a deprecated SDK for modern toolsets and IDEs such as VS2022 without installing any other outdated versions of Visual Studio.
+Based on [hMSBuild](https://github.com/3F/hMSBuild) + [GetNuTool](https://github.com/3F/GetNuTool)
 
 ```r
 Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
@@ -16,9 +16,9 @@ Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
 
 ## Why netfx4sdk
 
-Microsoft officially dropped support of the **Developer Pack** (SDK) for .NET Framework 4.0.
+*netfx4sdk* allows you to use easily a deprecated SDK for modern toolsets and IDEs such as VS2022+ / MSBuild 17+ / and other tools without installing any other outdated versions of Visual Studio.
 
-* Now it can only be a **Runtime** version: https://dotnet.microsoft.com/en-us/download/visual-studio-sdks
+Microsoft officially dropped support of the **Developer Pack** (SDK) for .NET Framework 4.0. Now it can only be a **Runtime** version: https://dotnet.microsoft.com/en-us/download/visual-studio-sdks
 
 Means you [can't simply **build** anything](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121) along with pure VS2022 (e.g. [VM image, clean VS2022 env](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42027332#L121))
 
@@ -30,9 +30,7 @@ But *netfx4sdk* will try to eliminate this artificial limitation by a single com
 
 ## Usage
 
-Two modes.
-
-`-mode sys` - Hack using assemblies for windows. Highly *recommended* because of
+`-mode sys` - Hack using assemblies for windows. Highly *recommended* because
 
 * [++] All modules are under windows support.
 * [+] It does not require internet connection (portable).
@@ -60,7 +58,7 @@ Two modes.
  -global   - To use the global toolset, like hMSBuild.
 
  -pkg-version {arg} - Specific package version. Where {arg}:
-     * 1.0.2 ...
+     * 1.0.3 ...
      * latest - (keyword) To use latest version;
 
  -debug    - To show debug information.
@@ -86,6 +84,21 @@ https://github.com/3F/netfx4sdk/releases/latest
 ```bat
 git clone https://github.com/3F/netfx4sdk.git src
 cd src & build & bin\Release\raw\netfx4sdk -help
+```
+
+### .sha1 official distribution
+
+*netfx4sdk* releases are now accompanied by a *.sha1* file in the official distribution; At the same time, commits from which releases are published are signed with the committer's verified signature (GPG).
+
+Make sure you are using official, unmodified, safe versions.
+
+Note: *.sha1* file is a text list of published files with checksums in the format: 
+
+`40-hexadecimal-digits` `<space>` `file`
+
+```
+eead8f5c1fdff2abd4da7d799fbbe694d392c792 path\file
+...
 ```
 
 ## Contributing

@@ -2,6 +2,22 @@
 netfx4sdk - https://github.com/3F/netfx4sdk
 - - - - - - - - - - - - - - - - - - - - -  
 
+[1.2] 2024.04.08
+
+    * FIXED: sys/system and WARN: Failed: 3
+    
+    * FIXED: 'a6' is not recognized as an internal or external command
+             when "Access denied" attempt.
+             
+    * FIXED: "Missing operator" when not found hMSBuild.
+    
+    * CHANGED: Added hMSBuild's -no-less-4 restriction.
+               Requires hMSBuild 2.4 or higher
+    
+    * CHANGED: Updated hMSBuild 2.4.1
+               https://github.com/3F/hMSBuild/releases/tag/2.4.1
+
+
 [1.1] 2023.12.10
     
     * FIXED: Issue #3 incorrect -mode sys handling on Windows XP.
