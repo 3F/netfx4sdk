@@ -35,8 +35,12 @@ echo.
 echo  -mode {value}
 echo    * system            - (Recommended) Hack using assemblies for windows.
 echo    * package           - Apply obsolete remote package. Read [About modes] below.
-echo    * sys               - Alias to `system`.
-echo    * pkg               - Alias to `package`.
+echo    * sys               - Alias to `system`
+echo    * pkg               - Alias to `package`
+echo    * system-or-package - Fallback for `system`. Use `package` if `system` failed.
+echo    * package-or-system - Fallback for `package`. Use `system` if `package` failed.
+echo    * sys-or-pkg        - Alias to `system-or-package`
+echo    * pkg-or-sys        - Alias to `package-or-system`
 echo.
 echo. -tfm {version}
 echo    * 4.0 - Process for .NET Framework 4.0 (default)
@@ -56,7 +60,7 @@ echo.
 echo  -debug    - To show debug information.
 echo  -version  - Display version of %~nx0.
 echo  -help     - Display this help. Aliases: -help -h -?
-echo. 
+echo.
 echo ...........
 echo About modes
 echo.
@@ -68,7 +72,7 @@ echo  [-] This is behavior-based hack;
 echo      Report or please fix us if something:
 echo      https://github.com/3F/netfx4sdk
 echo.
-echo `-mode package` will try to apply obsolete package to the environment.
+echo `-mode pkg` will try to apply obsolete package to the environment.
 echo  [-] Officially dropped support since VS2022.
 echo  [-] Requires internet connection to receive ~30 MB via GetNuTool.
 echo  [-] Requires decompression of received data to 178 MB before use.
@@ -81,6 +85,8 @@ echo %~n0 -debug -force -mode package
 echo %~n0 -mode pkg -pkg-version 1.0.2
 echo %~n0 -mode pkg -tfm 4.5
 echo %~n0 -global -mode pkg -tfm 3.5 -no-mklink -force
+echo call %~n0 -mode sys ^|^| call %~n0 -mode pkg
+echo %~n0 -mode sys-or-pkg
 
 goto endpoint
 
@@ -88,6 +94,7 @@ goto endpoint
 
 set "vpkg=1.0.3"
 set "tfms=2.0 3.5 4.0 4.5 4.6 4.7 4.8 4.5.1 4.5.2 4.6.1 4.6.2 4.7.1 4.7.2 4.8.1"
+set "tModes=system sys package pkg system-or-package sys-or-pkg package-or-system pkg-or-sys"
 
 set "kDebug="
 set "kMode="
@@ -98,6 +105,7 @@ set "kNoMklink="
 set "kTfm="
 set "tfm="
 set "kStub="
+set "kFallback="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -128,10 +136,35 @@ set key=!arg[%idx%]!
 
         goto continue
     ) else if [!key!]==[-mode] ( set /a "idx+=1" & call :eval arg[!idx!] v
-        
-        if not "!v!"=="sys" if not "!v!"=="system" if not "!v!"=="pkg" if not "!v!"=="package" goto errkey
 
-        if "!v!"=="system" ( set "kMode=sys" ) else if "!v!"=="package" ( set "kMode=pkg" ) else ( set "kMode=!v!" )
+        call :isValidV !v! tModes || ( echo Mode !v! is not allowed. Use one of %tModes%>&2 & goto errkey )
+
+        :: aliases
+
+        if "!v!"=="system" (
+            set "kMode=sys"
+
+        ) else if "!v!"=="package" (
+            set "kMode=pkg"
+
+        ) else if "!v!"=="system-or-package" (
+            set "kMode=sys-or-pkg"
+
+        ) else if "!v!"=="package-or-system" (
+            set "kMode=pkg-or-sys"
+
+        ) else ( set "kMode=!v!" )
+
+        :: fallback
+
+        if "!kMode!"=="sys-or-pkg" (
+            set "kMode=sys"
+            set "kFallback=pkg"
+
+        ) else if "!kMode!"=="pkg-or-sys" (
+            set "kMode=pkg"
+            set "kFallback=sys"
+        )
 
         goto continue
     ) else if [!key!]==[-rollback] (
@@ -172,7 +205,7 @@ set key=!arg[%idx%]!
         goto continue
     ) else if [!key!]==[-tfm] ( set /a "idx+=1" & call :eval arg[!idx!] v
         
-        call :isValidTfm !v! || ( echo Version !v! is not allowed. Use one of %tfms%>&2 & goto errkey )
+        call :isValidV !v! tfms || ( echo Version !v! is not allowed. Use one of %tfms%>&2 & goto errkey )
 
         set "kTfm=net!v:.=!"
         set "tfm=v!v!"
@@ -252,7 +285,9 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
     )
 
-    if "%kMode%"=="sys" (
+:activateMode
+
+    if "!kMode!"=="sys" (
 
         if not "!tfm!"=="v4.0" (
             set /a EXIT_CODE=%ERROR_TFM_UNSUPPORTED% & goto endpoint
@@ -282,7 +317,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set content=^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>
         call :fStub content "!xdir!\FullTrust.xml"
 
-    ) else if "%kMode%"=="pkg" (
+    ) else if "!kMode!"=="pkg" (
 
         set npkg=Microsoft.NETFramework.ReferenceAssemblies.!kTfm!
         echo Apply .NET Framework !tfm! package ...
@@ -328,7 +363,7 @@ if !EXIT_CODE! NEQ 0 (
         call :warn "Mode `-mode` is not specified, use -help"
     )
     else if !EXIT_CODE! EQU %ERROR_ENV_W% (
-        call :warn "Wrong or unknown data in the specified `-mode %kMode%`"
+        call :warn "Wrong or unknown data in the specified `-mode !kMode!`"
     )
     else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED% (
         call :warn "Unsupported hMSBuild version !engineVersion!, update !hmsurl!"
@@ -340,10 +375,16 @@ if !EXIT_CODE! NEQ 0 (
         call :warn "Something went wrong. Try to restore manually: !rdir!"
     )
     else if !EXIT_CODE! EQU %ERROR_TFM_UNSUPPORTED% (
-        call :warn ".NET Framework !tfm! is not supported in the selected `-mode %kMode%`"
+        call :warn ".NET Framework !tfm! is not supported in the selected `-mode !kMode!`"
     )
     else if !EXIT_CODE! EQU %ERROR_GNT_FAIL% (
-        call :warn "Failed network or there are no permissions to complete `-mode %kMode%`"
+        call :warn "Failed network or there are no permissions to complete `-mode !kMode!`"
+    )
+
+    if defined kFallback (
+        echo.& echo Switch to !kFallback! mode for second attempt due to `-mode !kMode!-or-!kFallback!`
+        set "kMode=!kFallback!" & set "kFallback="
+        goto activateMode
     )
 )
 exit /B !EXIT_CODE!
@@ -418,13 +459,14 @@ exit /B 0
     if not defined kTfm set "kTfm=net!_v:.=!"
     if not defined tfm set "tfm=v!_v!"
 exit /B 0
+:: :initDefaultTfm
 
-:isValidTfm {in:tfm}
-    for %%t in (%tfms%) do (
+:isValidV {in:value} {in:&list}
+    for %%t in (!%~2!) do (
         if "%~1"=="%%t" exit /B 0
     )
 exit /B 1
-:: :isValidTfm
+:: :isValidV
 
 :warn {in:msg}
     echo   [*] WARN: %~1 >&2
