@@ -955,7 +955,7 @@
           "#[IO copy.file(\"netfx4sdk.targets\", \"$(odir)build\\netstandard/netfx4sdk.targets\", true)]",
           "",
           "",
-          "#[IO cmd(\"cd $(dbin) & hMSBuild -GetNuTool /t:pack /p:ngin=raw\", 0)]",
+          "#[IO cmd(\"cd $(dbin) & $(SolutionDir)hMSBuild -GetNuTool /t:pack /p:ngin=raw\", 0)]",
           "",
           "~ local server alias to use as `gnt ~/p:ngserver=.\\` or `gnt ~/p:ngserver=bin\\Release\\`",
           "",

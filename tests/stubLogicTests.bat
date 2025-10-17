@@ -158,8 +158,8 @@ exit /B 0
     call a msgOrFailAt 1 "run a forced action: sys" || exit /B 1
     call a msgOrFailAt 2 "net40 v4.0" || exit /B 1
 
-    call a findInStreamOrFail "Apply hack using assemblies for Windows ..." 7,n || exit /B 1
-    call a findInStreamOrFail "-no-less-4 -no-vswhere -no-vs -only-path -notamd64" 8,n || exit /B 1
+    call a findInStreamOrFail "Apply hack using assemblies for Windows ..." 4,n || exit /B 1
+    call a findInStreamOrFail "-no-less-4 -no-vswhere -no-vs -only-path -notamd64" 5,n || exit /B 1
 
     set /a n+=1
     call a msgOrFailAt !n! "# 1  : " || exit /B 1

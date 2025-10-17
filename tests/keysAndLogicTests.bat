@@ -109,7 +109,7 @@ set "exec=%~3" & set "wdir=%~4"
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode sys -tfm 4.5" 1202 || goto x
+        call a startTest "-mode sys -tfm 4.5 -force" 1202 || goto x
             call a msgOrFailAt 2 "[*] WARN: .NET Framework v4.5 is not supported in the selected '-mode sys'" || goto x
         call a completeTest
     ::_____________________________________________________
@@ -117,7 +117,7 @@ set "exec=%~3" & set "wdir=%~4"
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode sys -tfm 4.6.2" 1202 || goto x
+        call a startTest "-mode sys -tfm 4.6.2 -force" 1202 || goto x
             call a msgOrFailAt 2 "[*] WARN: .NET Framework v4.6.2 is not supported in the selected '-mode sys'" || goto x
         call a completeTest
     ::_____________________________________________________
