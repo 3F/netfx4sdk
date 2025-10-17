@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><!-- https://github.com/3F/netfx4sdk -->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <netfx4sdkRootPkg>$(MSBuildThisFileDirectory)..\..\</netfx4sdkRootPkg> <!-- dotnet and native: [root]\build\*\netfx4sdk.targets -->
+
+    <netfx4sdkBat>$(netfx4sdkRootPkg)netfx4sdk.cmd</netfx4sdkBat>
+    <hMSBuildBat>$(netfx4sdkRootPkg)hMSBuild.bat</hMSBuildBat>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <netfx4sdkCopyToOutput Condition="'$(netfx4sdkCopyToOutput)'==''">true</netfx4sdkCopyToOutput>
+    <netfx4sdkResolvePublish Condition="'$(netfx4sdkResolvePublish)'==''">$(netfx4sdkCopyToOutput)</netfx4sdkResolvePublish>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <netfx4sdkDistFiles Include="$(netfx4sdkBat);$(hMSBuildBat)" Condition="Exists('$(netfx4sdkBat)')" />
+  </ItemGroup>
+
+  <Target Condition="'$(netfx4sdkCopyToOutput)'=='true'"
+          Name="netfx4sdkAfterBuild" AfterTargets="AfterBuild">
+
+      <Copy SourceFiles="@(netfx4sdkDistFiles)"
+                    DestinationFolder="$(TargetDir)\"
+                    SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup Condition="'$(netfx4sdkResolvePublish)'=='true'">
+    <ResolvedFileToPublish Include="@(netfx4sdkDistFiles)" RelativePath="%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+</Project>

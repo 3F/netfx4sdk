@@ -97,9 +97,28 @@ Note: *.sha1* file is a text list of published files with checksums in the forma
 `40-hexadecimal-digits` `<space>` `file`
 
 ```
-eead8f5c1fdff2abd4da7d799fbbe694d392c792 path\file
+e9e533b0da8e5546eff821a40fbf7ca20ab9cf7e path\file
 ...
 ```
+
+#### netfx4sdk.cmd validation
+
+Since *netfx4sdk.cmd* relies on the [hMSBuild](https://github.com/3F/hMSBuild) and [GetNuTool](https://github.com/3F/GetNuTool), you can validate it like: 
+
+> hMSBuild -GetNuTool ~& svc.gnt -sha1-cmp netfx4sdk.cmd sha1 -package-as-path
+
+or
+
+> gnt ~& svc.gnt -sha1-cmp netfx4sdk.cmd sha1 -package-as-path
+
+Where *sha1* is the checksum from the [official distribution](https://github.com/3F/netfx4sdk).
+
+Or, the official [package](https://www.nuget.org/packages/netfx4sdk/) (`gnt +netfx4sdk`) provides *validate.hMSBuild.bat*; this is wrapper of the command above.
+
+How safe is it?
+
+* [hMSBuild.bat self validation](https://github.com/3F/hMSBuild/?tab=readme-ov-file#hmsbuildbat-self-validation)
+* [gnt.bat self validation](https://github.com/3F/GetNuTool?tab=readme-ov-file#gntbat-self-validation)
 
 ## Contributing
 

@@ -157,36 +157,36 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     call :dbgprint "run action... " kMode kForce
 
-    set devdir=%ProgramFiles(x86)%
-    if not exist "%devdir%" set devdir=%ProgramFiles%
-    set devdir=%devdir%\Reference Assemblies\Microsoft\Framework\.NETFramework\
+    set "devdir=%ProgramFiles(x86)%"
+    if not exist "!devdir!" set "devdir=%ProgramFiles%"
+    set "devdir=!devdir!\Reference Assemblies\Microsoft\Framework\.NETFramework\"
 
-    set tdir=%devdir%%tfm%
-    set rdir=%tdir%.%~nx0
+    set "tdir=!devdir!%tfm%"
+    set "rdir=!tdir!.%~nx0"
 
     if defined kRollback (
 
-        if not exist "%rdir%" (
+        if not exist "!rdir!" (
             echo There's nothing to rollback.
             goto endpoint
         )
 
-        rmdir /Q/S "%tdir%" 2>nul
+        rmdir /Q/S "!tdir!" 2>nul
         call :dbgprint "ren " rdir tfm
-        ( ren "%rdir%" %tfm% 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
+        ( ren "!rdir!" %tfm% 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
 
         echo Rollback completed.
         goto endpoint
 
     )
 
-    if exist "%rdir%" (
+    if exist "!rdir!" (
         echo %~nx0 has already been applied before. There's nothing to do anymore.
         echo Use `-rollback` key to re-apply with another mode if needed.
         exit /B 0
     )
 
-    if exist "%tdir%\mscorlib.dll" (
+    if exist "!tdir!\mscorlib.dll" (
 
         if not defined kForce (
             echo The Developer Pack was found successfully. There's nothing to do here at all.
@@ -202,7 +202,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
     if defined kGlobal ( set "engine=hMSBuild" ) else ( set engine="%~dp0hMSBuild" )
 
     call :invoke engine "-version" || ( set /a EXIT_CODE=%ERROR_HMSBUILD_NOT_FOUND% & goto endpoint )
-    call :getFirstMsg engineVersion & if !engineVersion! LSS 2.4 (
+    call :getFirstMsg engineVersion & call :checkEngine engineVersion 2,4,0 || (
         set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
     )
 
@@ -214,20 +214,20 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set /a EXIT_CODE=%ERRORLEVEL% & if !EXIT_CODE! NEQ 0 goto endpoint
 
         call :getFirstMsg lDir
-        call :xcp "%tdir%" "%rdir%" || goto endpoint
+        call :xcp "!tdir!" "!rdir!" || goto endpoint
 
         set lDir=!lDir:msbuild.exe=!
         call :dbgprint "lDir " lDir
         if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
-        mkdir "%tdir%" 2>nul
-        for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "%tdir%\%%i" "!lDir!%%i" >nul 2>nul
-        for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do mklink "%tdir%\%%i" "!lDir!WPF\%%i" >nul 2>nul
+        mkdir "!tdir!" 2>nul
+        for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "!tdir!\%%i" "!lDir!%%i" >nul 2>nul
+        for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do mklink "!tdir!\%%i" "!lDir!WPF\%%i" >nul 2>nul
 
-        set "xdir=%tdir%\RedistList" & mkdir "!xdir!" 2>nul
+        set "xdir=!tdir!\RedistList" & mkdir "!xdir!" 2>nul
         echo ^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>> "!xdir!\FrameworkList.xml"
 
-        set "xdir=%tdir%\PermissionSets" & mkdir "!xdir!" 2>nul
+        set "xdir=!tdir!\PermissionSets" & mkdir "!xdir!" 2>nul
         echo ^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>> "!xdir!\FullTrust.xml"
 
 
@@ -249,8 +249,8 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
         )
 
-        ren "%tdir%" %tfm%.%~nx0 2>nul
-        mklink /J "%tdir%" "!dpkg!"
+        ren "!tdir!" %tfm%.%~nx0 2>nul
+        mklink /J "!tdir!" "!dpkg!"
 
     )
 
@@ -266,6 +266,7 @@ goto endpoint
 
 if !EXIT_CODE! NEQ 0 (
     call :warn "Failed: !EXIT_CODE!"
+    set "hmsurl=https://github.com/3F/hMSBuild"
 
     if !EXIT_CODE! EQU %ERROR_PATH_NOT_FOUND% (
         call :warn "File or path was not found, use -debug"
@@ -277,13 +278,13 @@ if !EXIT_CODE! NEQ 0 (
         call :warn "Wrong or unknown data in specified mode"
     )
     else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED% (
-        call :warn "Unsupported version of hMSBuild"
+        call :warn "Unsupported hMSBuild version !engineVersion!, update !hmsurl!"
     )
     else if !EXIT_CODE! EQU %ERROR_HMSBUILD_NOT_FOUND% (
-        call :warn "hMSBuild is not found, try -global"
+        call :warn "hMSBuild is not found. Try -global key or visit !hmsurl!"
     )
     else if !EXIT_CODE! EQU %ERROR_ROLLBACK% (
-        call :warn "Something went wrong. Try to restore manually: %rdir%"
+        call :warn "Something went wrong. Try to restore manually: !rdir!"
     )
 )
 exit /B !EXIT_CODE!
@@ -301,6 +302,22 @@ set "src=%~1" & set "dst=%~2"
     %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
 exit /B 0
 :: :xcp
+
+:checkEngine
+    ::  &(1) - Raw version string e.g. 2.5.0.3303+ae68d39
+    ::   (2) - Major. Must be greater or equal to.
+    ::   (3) - Minor. Must be greater or equal to.
+    ::   (4) - Patch. Must be greater or equal to.
+    ::  !!1  - Error code 1 if unsupported version.
+
+    for /F "tokens=1,2,3 delims=." %%a in ("!%~1!") do (
+        if %%a LSS %~2 exit /B 1
+        if %%a EQU %~2 (
+            if %%b LSS %~3 exit /B 1
+            if %%b EQU %~3 if %%c LSS %~4 exit /B 1
+        )
+    )
+exit /B 0
 
 :warn {in:msg}
     echo   [*] WARN: %~1 >&2
