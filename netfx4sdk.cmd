@@ -47,6 +47,7 @@ echo  -force      - Aggressive behavior when applying etc.
 echo  -rollback   - Rollback applied modifications.
 echo  -global     - To use the global toolset, like hMSBuild.
 echo  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
+echo  -stub       - Use a stub instead of actual processing.
 echo.
 echo  -pkg-version {arg} - Specific package version in pkg mode. Where {arg}:
 echo      * 1.0.3 ...
@@ -96,6 +97,7 @@ set "kGlobal="
 set "kNoMklink="
 set "kTfm="
 set "tfm="
+set "kStub="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -153,6 +155,11 @@ set key=!arg[%idx%]!
         set kNoMklink=1
 
         goto continue
+    ) else if [!key!]==[-stub] (
+
+        set kStub=1
+
+        goto continue
     ) else if [!key!]==[-global] (
 
         set kGlobal=1
@@ -207,11 +214,11 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             goto endpoint
         )
 
-        rmdir /Q/S "!tdir!" 2>nul
+        call :stub "rmdir" /Q/S "!tdir!" 2>nul
 
         if exist "!rdir!" (
             call :dbgprint "ren " rdir tfm
-            ( ren "!rdir!" !tfm! 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
+            ( call :stub "ren" "!rdir!" !tfm! 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
         )
 
         echo Rollback completed.
@@ -263,16 +270,17 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         call :dbgprint "lDir " lDir
         if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
-        mkdir "!tdir!" 2>nul
+        call :stub "mkdir" "!tdir!" 2>nul
         for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do call :copyOrLinkFileDbg "!lDir!%%i" "!tdir!\%%i"
         for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do call :copyOrLinkFileDbg "!lDir!WPF\%%i" "!tdir!\%%i"
 
-        set "xdir=!tdir!\RedistList" & mkdir "!xdir!" 2>nul
-        echo ^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>> "!xdir!\FrameworkList.xml"
+        set "xdir=!tdir!\RedistList" & call :stub "mkdir" "!xdir!" 2>nul
+        set content=^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>
+        call :fStub content "!xdir!\FrameworkList.xml"
 
-        set "xdir=!tdir!\PermissionSets" & mkdir "!xdir!" 2>nul
-        echo ^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>> "!xdir!\FullTrust.xml"
-
+        set "xdir=!tdir!\PermissionSets" & call :stub "mkdir" "!xdir!" 2>nul
+        set content=^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>
+        call :fStub content "!xdir!\FullTrust.xml"
 
     ) else if "%kMode%"=="pkg" (
 
@@ -294,7 +302,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
         )
 
-        ren "!tdir!" !tfm!.%~nx0 2>nul
+        call :stub "ren" "!tdir!" !tfm!.%~nx0 2>nul
         call :copyOrLinkFolder "!dpkg!" "!tdir!"
 
     )
@@ -354,9 +362,9 @@ exit /B !EXIT_CODE!
     :: NOTE: possible "Invalid switch - /B" in older xcopy
 
     if defined kNoMklink (
-        %_x% >nul || exit /B %ERROR_ENV_W%
+        call :stub %_x% >nul || exit /B %ERROR_ENV_W%
     ) else (
-        %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
+        call :stub %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
     )
 exit /B 0
 :: :xcp
@@ -391,7 +399,7 @@ exit /B 0
     if defined kNoMklink (
         call :xcp "%~1" "%~2*"
     ) else (
-        mklink "%~2" "%~1"
+        call :stub "mklink" "%~2" "%~1"
     )
 exit /B 0
 :: :copyOrLinkFile
@@ -400,7 +408,7 @@ exit /B 0
     if defined kNoMklink (
         call :xcp "%~1" "%~2" +
     ) else (
-        mklink /J "%~2" "%~1"
+        call :stub "mklink" /J "%~2" "%~1"
     )
 exit /B 0
 :: :copyOrLinkFolder
@@ -514,3 +522,16 @@ exit /B !msg[%msgIdx%]!
     set "%1=!msg[1]!"
 exit /B 0
 :: :getFirstMsg
+
+:stub {in:app} {in:*}
+    ( set "app=%~1" & shift )
+    set appArgs=%1 %2 %3 %4 %5 %6 %7 %8 %9
+    if not defined kStub ( !app! !appArgs! & exit /B )
+    echo !app! !appArgs!
+exit /B 0
+:: :stub
+
+:fStub {in:&dstr} {in:path}
+    if defined kStub ( echo !%~1!^> "%~2" ) else ( echo !%~1!> "%~2" )
+exit /B 0
+:: :fStub
