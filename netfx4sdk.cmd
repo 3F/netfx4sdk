@@ -38,9 +38,10 @@ echo   * package  - Apply obsolete remote package. Read [About modes] below.
 echo   * sys      - Alias to `system`
 echo   * pkg      - Alias to `package`
 echo.
-echo  -force    - Aggressive behavior when applying etc.
-echo  -rollback - Rollback applied modifications.
-echo  -global   - To use the global toolset, like hMSBuild.
+echo  -force      - Aggressive behavior when applying etc.
+echo  -rollback   - Rollback applied modifications.
+echo  -global     - To use the global toolset, like hMSBuild.
+echo  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
 echo.
 echo  -pkg-version {arg} - Specific package version. Where {arg}:
 echo      * 1.0.3 ...
@@ -80,7 +81,12 @@ goto endpoint
 set "tfm=v4.0"
 set "vpkg=1.0.3"
 
-set "kDebug=" & set "kMode=" & set "kRollback=" & set "kForce=" & set "kGlobal="
+set "kDebug="
+set "kMode="
+set "kRollback="
+set "kForce="
+set "kGlobal="
+set "kNoMklink="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -130,6 +136,11 @@ set key=!arg[%idx%]!
         @echo $core.version$
         goto endpoint
 
+    ) else if [!key!]==[-no-mklink] (
+
+        set kNoMklink=1
+
+        goto continue
     ) else if [!key!]==[-global] (
 
         set kGlobal=1
@@ -208,21 +219,21 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     if "%kMode%"=="sys" (
 
-        echo Apply hack using assemblies for windows ...
+        echo Apply hack using assemblies for Windows ...
 
         call :invoke engine "-no-less-4 -no-vswhere -no-vs -only-path -notamd64"
         set /a EXIT_CODE=%ERRORLEVEL% & if !EXIT_CODE! NEQ 0 goto endpoint
 
         call :getFirstMsg lDir
-        call :xcp "!tdir!" "!rdir!" || goto endpoint
+        call :xcp "!tdir!" "!rdir!" + || goto endpoint
 
         set lDir=!lDir:msbuild.exe=!
         call :dbgprint "lDir " lDir
         if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
         mkdir "!tdir!" 2>nul
-        for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do mklink "!tdir!\%%i" "!lDir!%%i" >nul 2>nul
-        for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do mklink "!tdir!\%%i" "!lDir!WPF\%%i" >nul 2>nul
+        for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do call :copyOrLinkFileDbg "!lDir!%%i" "!tdir!\%%i"
+        for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do call :copyOrLinkFileDbg "!lDir!WPF\%%i" "!tdir!\%%i"
 
         set "xdir=!tdir!\RedistList" & mkdir "!xdir!" 2>nul
         echo ^<?xml version="1.0" encoding="utf-8"?^>^<FileList Redist="Microsoft-Windows-CLRCoreComp.4.0" Name=".NET Framework 4" RuntimeVersion="4.0" ToolsVersion="4.0" /^>> "!xdir!\FrameworkList.xml"
@@ -250,7 +261,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         )
 
         ren "!tdir!" %tfm%.%~nx0 2>nul
-        mklink /J "!tdir!" "!dpkg!"
+        call :copyOrLinkFolder "!dpkg!" "!tdir!"
 
     )
 
@@ -293,13 +304,20 @@ exit /B !EXIT_CODE!
 :: Functions
 :: ::
 
-:xcp {in:src} {in:dst}
-set "src=%~1" & set "dst=%~2"
+:xcp {in:src} {in:dst} {in:subdirs}
+    ( set "src=%~1" & set "dst=%~2" & set "subdirs=%~3" )
+    if defined subdirs ( set "subdirs=/E" ) else ( set "subdirs=" )
 
-    call :dbgprint "xcp " src dst
-    set _x=xcopy "%src%" "%dst%" /E/I/Q/H/K/O/X  ::&:
-    :: Invalid switch - /B in older xcopy
-    %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
+    call :dbgprint "xcp !subdirs!" src dst
+    set _x=xcopy "%src%" "%dst%" !subdirs!/I/Q/H/K/O/X  ::&:
+
+    :: NOTE: possible "Invalid switch - /B" in older xcopy
+
+    if defined kNoMklink (
+        %_x% >nul || exit /B %ERROR_ENV_W%
+    ) else (
+        %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
+    )
 exit /B 0
 :: :xcp
 
@@ -318,6 +336,34 @@ exit /B 0
         )
     )
 exit /B 0
+:: :checkEngine
+
+:copyOrLinkFileDbg {in:src} {in:dst}
+    if defined kDebug (
+        call :copyOrLinkFile "%~1" "%~2"
+    ) else (
+        call :copyOrLinkFile "%~1" "%~2" 2>nul>nul
+    )
+exit /B 0
+:: :copyOrLinkFileDbg
+
+:copyOrLinkFile {in:src} {in:dst}
+    if defined kNoMklink (
+        call :xcp "%~1" "%~2*"
+    ) else (
+        mklink "%~2" "%~1"
+    )
+exit /B 0
+:: :copyOrLinkFile
+
+:copyOrLinkFolder {in:src} {in:dst}
+    if defined kNoMklink (
+        call :xcp "%~1" "%~2" +
+    ) else (
+        mklink /J "%~2" "%~1"
+    )
+exit /B 0
+:: :copyOrLinkFolder
 
 :warn {in:msg}
     echo   [*] WARN: %~1 >&2
