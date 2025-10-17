@@ -30,6 +30,9 @@ if "!failedTotal!" LSS "1" set /a failedTotal=0
 :::::::::::::::::: :::::::::::::: :::::::::::::::::::::::::
 :: Tests
 
+    echo. & call a print "Tests - 'stubLogicTests'"
+    call .\stubLogicTests gcount failedTotal "%core% -stub" "%rdir%"
+
     echo. & call a print "Tests - 'PkgTests'"
     call .\PkgTests gcount failedTotal "tests\gnt.bat" "%rdir%"
 

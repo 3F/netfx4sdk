@@ -110,10 +110,13 @@ set "kFallback="
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
 set /a ERROR_PATH_NOT_FOUND=3
+
 set /a ERROR_NO_MODE=1000
 set /a ERROR_ENV_W=1001
 set /a ERROR_HMSBUILD_UNSUPPORTED=1002
 set /a ERROR_HMSBUILD_NOT_FOUND=1003
+set /a ERROR_UNAUTHORIZED_ACCESS=1004
+
 set /a ERROR_ROLLBACK=1100
 set /a ERROR_INVALID_KEY_OR_VALUE=1200
 set /a ERROR_TFM_UNSUPPORTED=1202
@@ -208,7 +211,7 @@ set key=!arg[%idx%]!
     )
     else if [!key!]==[-force]
     (
-        set kForce=1
+        set kForce= a forced
         goto continue
     )
     else if [!key!]==[-tfm]
@@ -238,7 +241,14 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     call :initDefaultTfm 4.0
 
-    call :dbgprint "run action ... " kMode kForce
+    if defined kRollback
+    (
+        call :dbgprint "activated!kForce! rollback"
+    )
+    else
+    (
+        call :dbgprint "run!kForce! action:" kMode
+    )
 
     set "devdir=%ProgramFiles(x86)%"
     if not exist "!devdir!" set "devdir=%ProgramFiles%"
@@ -313,7 +323,9 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set /a EXIT_CODE=%ERRORLEVEL% & if !EXIT_CODE! NEQ 0 goto endpoint
 
         call :getFirstMsg lDir
-        call :xcp "!tdir!" "!rdir!" + || goto endpoint
+        call :xcp "!tdir!" "!rdir!" + || (
+            set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
+        )
 
         set lDir=!lDir:msbuild.exe=!
         call :dbgprint "lDir " lDir
@@ -352,7 +364,9 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
         )
 
-        call :stub "ren" "!tdir!" !tfm!.%~nx0 2>nul
+        call :stub "ren" "!tdir!" !tfm!.%~nx0 2>nul || (
+            set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
+        )
         call :copyOrLinkFolder "!dpkg!" "!tdir!"
     )
 
@@ -401,6 +415,10 @@ if !EXIT_CODE! NEQ 0 (
     else if !EXIT_CODE! EQU %ERROR_GNT_FAIL%
     (
         call :warn "Failed network or there are no permissions to complete '-mode !kMode!'"
+    )
+    else if !EXIT_CODE! EQU %ERROR_UNAUTHORIZED_ACCESS%
+    (
+        call :warn "Unauthorized access. Make sure you have read/write permissions to the folders listed in '-debug'. Try run %~nx0 as administrator."
     )
 
     if defined kFallback

@@ -107,8 +107,39 @@ set "exec=%~3" & set "wdir=%~4"
     ::_____________________________________________________
 
 
+    ::_______ ------ ______________________________________
 
-    :: TODO: mocking core logic to test other keys
+        call a startTest "-mode sys -tfm 4.5" 1202 || goto x
+            call a msgOrFailAt 2 "[*] WARN: .NET Framework v4.5 is not supported in the selected '-mode sys'" || goto x
+        call a completeTest
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        call a startTest "-mode sys -tfm 4.6.2" 1202 || goto x
+            call a msgOrFailAt 2 "[*] WARN: .NET Framework v4.6.2 is not supported in the selected '-mode sys'" || goto x
+        call a completeTest
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        call a startTest "-mode pkg -tfm 1.2.3" 1200 || goto x
+            call a msgOrFailAt 1 "Version '1.2.3' is not allowed. Use one of " || goto x
+            call a msgOrFailAt 2 "[*] WARN: Invalid key or value for '-tfm'" || goto x
+        call a completeTest
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        call a startTest "" || goto x
+            call a msgOrFailAt 1 "netfx4sdk %appversionNfx%" || goto x
+            call a msgOrFailAt 2 "github/3F" || goto x
+        call a completeTest
+    ::_____________________________________________________
+
 
 
 :::::::::::::
