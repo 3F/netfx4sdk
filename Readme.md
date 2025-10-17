@@ -7,7 +7,7 @@ Two modes! Pure batch-scripts! Portable and Flexible (changes can be easily undo
 Based on [hMSBuild](https://github.com/3F/hMSBuild) + [GetNuTool](https://github.com/3F/GetNuTool)
 
 ```r
-Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
+Copyright (c) 2021-2025  Denis Kuzmin <x-3F@outlook.com> github/3F
 ```
 
 [ 「 ❤ 」 ](https://3F.github.io/fund) [![License](https://img.shields.io/badge/License-MIT-74A5C2.svg)](https://github.com/3F/netfx4sdk/blob/master/License.txt)

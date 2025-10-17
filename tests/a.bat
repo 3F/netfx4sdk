@@ -1,13 +1,25 @@
+::! Copyright (c) 2015  Denis Kuzmin <x-3F@outlook.com> github/3F
+::! Copyright (c) GetNuTool contributors https://github.com/3F/GetNuTool/graphs/contributors
+::! Licensed under the MIT License (MIT).
+::! See accompanying License.txt file or visit https://github.com/3F/GetNuTool
 @echo off
-:: Copyright (c) 2015  Denis Kuzmin <x-3F@outlook.com> github/3F
-:: Part of https://github.com/3F/GetNuTool
 
 if "%~1"=="" echo Empty function name & exit /B 1
-call :%~1 %2 %3 %4 %5 %6 %7 %8 %9 & exit /B !ERRORLEVEL!
+if .%~1 EQU .1001 call :NotRealLabel & exit /B
+call :shiftArgs 1,99 shProcArgs %* & call :!shProcArgs! & exit /B
 
 :initAppVersion
     :: [1] - Optional postfix.
-    for /F "tokens=*" %%i in (..\.version) do set "appversion%~1=%%i"
+    :: [2] - Optional path or version string
+
+    set "_pathOrVer=%~2"
+    if not defined _pathOrVer set "_pathOrVer=..\.version"
+
+    if exist "%_pathOrVer%" (
+        set /p appversion%~1=<"%_pathOrVer%"
+    ) else (
+        set appversion%~1=%_pathOrVer%
+    )
 exit /B
 
 :invoke
@@ -39,10 +51,21 @@ exit /B !msg[%msgIdx%]!
     call :invoke "%~1" nul retcode
 exit /B !retcode!
 
+:invokeShortVersion
+    ::   (1) - Input command to get raw version string.
+    :: *&(2) - Output in a short version format major.minor.patch
+    ::  !!1  - Error code 1 if failed.
+
+    for /F "tokens=1,2,3 delims=." %%a in ('%~1') do (
+        set "%2=%%a.%%b.%%c" & exit /B 0
+    )
+    set "%2="
+exit /B 1
+
 :startExTest
     ::  (1) - Logic via :label name
     ::  (2) - Input arguments to core inside "...". Use ` sign to apply " double quotes inside "...".
-    ::  [3] - Expected return code. Default, 0.
+    ::  [3] - Expected return code. Default, 0. Negative values (e.g. -1) ​​to disable checking.
     :: !!1  - Error code 1 if app's error code is not equal [2] as expected.
 
     set "tArgs=%~2"
@@ -63,6 +86,7 @@ exit /B !retcode!
     goto %callback%
     :_logicExTestEnd
 
+    if %exCode% LSS 0 exit /B 0
     if "!retcode!" NEQ "%exCode%" call :failTest & exit /B 1
 exit /B 0
 
@@ -262,12 +286,12 @@ exit /B 0
 exit /B 0
 
 :checkFs
-    ::  (1) - Path to directory that must be available.
-    ::  (2) - Path to the file that must exist.
+    ::  (1) - Path to directory that must be available or to file that must exist.
+    ::  [2] - An optional path to a file that must exist in an accessible directory (1).
     :: !!1  - Error code 1 if the directory or file does not exist.
 
     if not exist "%~1" call :failTest & exit /B 1
-    if not exist "%~1\%~2" call :failTest & exit /B 1
+    if not "%~2"=="" if not exist "%~1\%~2" call :failTest & exit /B 1
 exit /B 0
 
 :checkFsBase
@@ -321,6 +345,22 @@ exit /B 0
     if not exist "%~1" call :failTest & exit /B 1
 exit /B 0
 
+:assertEqual
+    ::  (1) - value 1
+    ::  (2) - value 2
+    :: !!1  - Error code 1 if not equal.
+
+    if not "%~1"=="%~2" call :failTest & exit /B 1
+exit /B 0
+
+:assertNotEqual
+    ::  (1) - value 1
+    ::  (2) - value 2
+    :: !!1  - Error code 1 if not equal.
+
+    if "%~1"=="%~2" call :failTest & exit /B 1
+exit /B 0
+
 :findInStream
     ::  (1) - substring to check
     ::  [2] - Start index, 0 by default.
@@ -354,7 +394,7 @@ exit /B 0
     ::  (1) - substring to check
     :: !!1  - Error code 1 if the input (1) was not found.
 
-    call :findInStream "%~1" n & if .!n! EQU .1 ( call :failTest & exit /B 1 )
+    call :findInStream "%~1" _n & if .!_n! EQU .1 ( call :failTest & exit /B 1 )
 exit /B 0
 
 :print
@@ -402,16 +442,20 @@ exit /B 0
     :: e.g. set a="" not set "a="
 exit /B 0
 
-:sha1At0
+:getSha1At
     ::  (1) - Stream index.
     :: &(2) - sha1 result.
-    set %2=!msg[%~1]:~4,40!
+    ::  [3] - Start position in input stream.
+    set "_posSha1=%~3"
+    if not defined _posSha1 set "_posSha1=0"
+    set %2=!msg[%~1]:~%_posSha1%,40!
 exit /B 0
 
 :sha1At
     ::  (1) - Stream index.
     :: &(2) - sha1 result.
-    set %2=!msg[%~1]:~45,40!
+    call :getSha1At %1 _sha1 45
+    set %2=!_sha1!
 exit /B 0
 
 :errargs
@@ -460,4 +504,94 @@ exit /B 0
 :disableAppVersion
     :: [1] - Optional postfix.
     set "appversion%~1=off"
+exit /B 0
+
+:shiftArgs
+    ::   (1) - Start index from 1.
+    ::   (2) - End index.
+    ::  &(3) - Result.
+    :: [4+] - %*
+
+    set /a idx=0
+    set /a start=%~1 + 2
+    set /a end=%~2 + 1
+    set "ret=" & set "rName=%3"
+    :_shiftArg
+        shift & set /a idx+=1
+        if %idx% LSS %start% if "%~1" NEQ "" goto _shiftArg
+
+        :: Y-60, hMSBuild; don't use `set "ret=!ret!%1 "` due to "..." and `&`, `|`, etc.
+        set ret=!ret!%1
+
+    :: NOTE: give preference to `defined` because of possible empty "" (a two double quotes together)
+    set _argf=%1
+    if defined _argf set ret=!ret!,& if %idx% LEQ %end% goto _shiftArg
+
+    set "%rName%=!ret!"
+exit /B 0
+
+:initGlobalUnspecLabelMsg
+    :: (G_UnspecLabelMsg) - Pattern when the system cannot find the label.
+    if not defined G_UnspecLabelMsg call :getUnspecLabelMsg G_UnspecLabelMsg
+exit /B 0
+
+:getUnspecLabelMsg
+    :: &(1) - Output message.
+
+    for /F "tokens=*" %%i in ('%~dpnx0 1001 2^>^&1') do set _ul_msg=%%i
+    set "%~1=%_ul_msg:NotRealLabel=%"
+exit /B 0
+
+:thisOrBase
+    :: (1) - Process return code.
+    :: (2) - Process stderr via file.
+    :: (3) - Use a negative number (less than 0) to finish processing.
+
+    set "_msgErr=" & set /p _msgErr=<%2
+
+    if .%~1 NEQ .1 (
+        if defined _msgErr echo !_msgErr! >&2
+        exit /B 0
+    )
+
+    call :initGlobalUnspecLabelMsg
+    call :contains _msgErr "%G_UnspecLabelMsg%" _n
+    if .!_n! NEQ .1 (
+        if defined _msgErr echo !_msgErr! >&2
+        exit /B 0
+    )
+
+    if %~3 LEQ -1 if defined _msgErr echo !_msgErr! >&2
+exit /B 1
+
+:tryThisOrBase
+    ::  (1) - Process return code.
+    ::  (2) - Process stderr via file.
+    :: [3-9]
+    :: (G_AutoCleanThisOrBase)
+
+    if .%~1 EQU .0 set "_currentLevelTOB=" & exit /B 0
+
+    if !_currentLevelTOB! LSS 0 set "_currentLevelTOB="
+    if not defined _currentLevelTOB set /a _currentLevelTOB=G_LevelChild*2-1
+
+    set /a _currentLevelTOB-=1
+
+    set /a rCode=%~1
+    call :thisOrBase %~1 %2 0 || (
+
+        :: TODO: (performance) reduce the number of I/O interruptions
+        call :shiftArgs 3,99 shArgs %* & call :!shArgs! 2>%2
+        set /a rCode=!ERRORLEVEL!
+        call :thisOrBase !rCode! %2 !_currentLevelTOB!
+    )
+    if defined G_AutoCleanThisOrBase call :cleanForThisOrBase %2
+exit /B !rCode!
+
+:cleanForThisOrBase
+    :: [1] - Optional specific .err file.
+
+    set _cltf=%2
+    if not defined _cltf set _cltf=%~nx0.err
+    del /Q/F %_cltf% 2>nul
 exit /B 0

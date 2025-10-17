@@ -1,8 +1,11 @@
-@echo off & echo Incomplete script. Compile it first via 'build.bat' - github.com/3F/netfx4sdk 1>&2 & exit /B 1
+::! netfx4sdk (c) Denis Kuzmin <x-3F@outlook.com> github.com/3F
 
-:: netfx4sdk $core.version$
-:: Copyright (c) 2021-2024  Denis Kuzmin <x-3F@outlook.com> github/3F
-:: Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
+@echo off & echo Incomplete script. Build it using build.bat @ github.com/3F/netfx4sdk >&2 & exit /B 1
+
+:: Copyright (c) 2021  Denis Kuzmin <x-3F@outlook.com> github/3F
+:: Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk/graphs/contributors
+:: Licensed under the MIT License (MIT).
+:: See accompanying License.txt file or visit https://github.com/3F/netfx4sdk
 
 set "dp0=%~dp0"
 set args=%*
@@ -21,8 +24,10 @@ goto commands
 
 echo.
 echo netfx4sdk $core.version$
-echo Copyright (c) 2021-2024  Denis Kuzmin ^<x-3F@outlook.com^> github/3F
-echo Copyright (c) netfx4sdk contributors https://github.com/3F/netfx4sdk
+echo Copyright (c) 2021-2025  Denis Kuzmin ^<x-3F@outlook.com^> github/3F
+echo Copyright (c) netfx4sdk contributors
+echo.
+echo Under the MIT License https://github.com/3F/netfx4sdk
 echo.
 echo ....
 echo Keys
@@ -106,7 +111,7 @@ set key=!arg[%idx%]!
         
         if not "!v!"=="sys" if not "!v!"=="system" if not "!v!"=="pkg" if not "!v!"=="package" goto errkey
 
-        if "!v!"=="system" ( set "kMode=sys" ) else if "!v!"=="package" ( set "kMode=pkg" ) else set "kMode=!v!"
+        if "!v!"=="system" ( set "kMode=sys" ) else if "!v!"=="package" ( set "kMode=pkg" ) else ( set "kMode=!v!" )
 
         goto continue
     ) else if [!key!]==[-rollback] (
@@ -194,7 +199,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
 
-    if defined kGlobal ( set "engine=hMSBuild" ) else set engine="%~dp0hMSBuild"
+    if defined kGlobal ( set "engine=hMSBuild" ) else ( set engine="%~dp0hMSBuild" )
 
     call :invoke engine "-version" || ( set /a EXIT_CODE=%ERROR_HMSBUILD_NOT_FOUND% & goto endpoint )
     call :getFirstMsg engineVersion & if !engineVersion! LSS 2.4 (
@@ -232,7 +237,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         echo Apply !npkg! package ...
 
         set opkg=%~nx0.%vpkg%
-        if "%vpkg%"=="latest" ( set "vpkg=" ) else set vpkg=/%vpkg%
+        if "%vpkg%"=="latest" ( set "vpkg=" ) else ( set "vpkg=/%vpkg%" )
 
         if defined kDebug set engine=!engine! -debug
         call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
@@ -351,6 +356,7 @@ exit /B 0
 
     :: delayed evaluation
     set _vl=!%1!  ::&:
+    if not defined _vl set %2=&exit/B0
 
     :: data from %..% below should not contain double quotes, thus we need to protect this:
 
