@@ -33,17 +33,22 @@ echo ....
 echo Keys
 echo.
 echo  -mode {value}
-echo   * system   - (Recommended) Hack using assemblies for windows.
-echo   * package  - Apply obsolete remote package. Read [About modes] below.
-echo   * sys      - Alias to `system`
-echo   * pkg      - Alias to `package`
+echo    * system            - (Recommended) Hack using assemblies for windows.
+echo    * package           - Apply obsolete remote package. Read [About modes] below.
+echo    * sys               - Alias to `system`.
+echo    * pkg               - Alias to `package`.
+echo.
+echo. -tfm {version}
+echo    * 4.0 - Process for .NET Framework 4.0 (default)
+echo    * 2.0, 3.5, 4.5, 4.6, 4.7, 4.8
+echo    * 4.5.1, 4.5.2, 4.6.1, 4.6.2, 4.7.1, 4.7.2, 4.8.1
 echo.
 echo  -force      - Aggressive behavior when applying etc.
 echo  -rollback   - Rollback applied modifications.
 echo  -global     - To use the global toolset, like hMSBuild.
 echo  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
 echo.
-echo  -pkg-version {arg} - Specific package version. Where {arg}:
+echo  -pkg-version {arg} - Specific package version in pkg mode. Where {arg}:
 echo      * 1.0.3 ...
 echo      * latest - (keyword) To use latest version;
 echo.
@@ -69,17 +74,19 @@ echo  [-] Requires decompression of received data to 178 MB before use.
 echo  [+] Well known official behavior.
 echo.
 echo ...................
-echo netfx4sdk -mode sys
-echo netfx4sdk -rollback
-echo netfx4sdk -debug -force -mode package
-echo netfx4sdk -mode pkg -pkg-version 1.0.2
+echo %~n0 -mode sys
+echo %~n0 -rollback
+echo %~n0 -debug -force -mode package
+echo %~n0 -mode pkg -pkg-version 1.0.2
+echo %~n0 -mode pkg -tfm 4.5
+echo %~n0 -global -mode pkg -tfm 3.5 -no-mklink -force
 
 goto endpoint
 
 :commands
 
-set "tfm=v4.0"
 set "vpkg=1.0.3"
+set "tfms=2.0 3.5 4.0 4.5 4.6 4.7 4.8 4.5.1 4.5.2 4.6.1 4.6.2 4.7.1 4.7.2 4.8.1"
 
 set "kDebug="
 set "kMode="
@@ -87,6 +94,8 @@ set "kRollback="
 set "kForce="
 set "kGlobal="
 set "kNoMklink="
+set "kTfm="
+set "tfm="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -96,6 +105,9 @@ set /a ERROR_ENV_W=1001
 set /a ERROR_HMSBUILD_UNSUPPORTED=1002
 set /a ERROR_HMSBUILD_NOT_FOUND=1003
 set /a ERROR_ROLLBACK=1100
+set /a ERROR_INVALID_KEY_OR_VALUE=1200
+set /a ERROR_TFM_UNSUPPORTED=1202
+set /a ERROR_GNT_FAIL=1400
 
 set /a idx=0
 
@@ -151,11 +163,19 @@ set key=!arg[%idx%]!
         set kForce=1
 
         goto continue
+    ) else if [!key!]==[-tfm] ( set /a "idx+=1" & call :eval arg[!idx!] v
+        
+        call :isValidTfm !v! || ( echo Version !v! is not allowed. Use one of %tfms%>&2 & goto errkey )
+
+        set "kTfm=net!v:.=!"
+        set "tfm=v!v!"
+
+        goto continue
     ) else (
         ::&:
         :errkey
-        call :warn "Incorrect key or value for `!key!`"
-        set /a EXIT_CODE=%ERROR_FAILED%
+        call :warn "Invalid key or value for `!key!`"
+        set /a EXIT_CODE=%ERROR_INVALID_KEY_OR_VALUE%
         goto endpoint  ::&:
     )
 
@@ -166,25 +186,33 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 :: Main 
 :action
 
-    call :dbgprint "run action... " kMode kForce
+    call :initDefaultTfm 4.0
+
+    call :dbgprint "run action ... " kMode kForce
 
     set "devdir=%ProgramFiles(x86)%"
     if not exist "!devdir!" set "devdir=%ProgramFiles%"
     set "devdir=!devdir!\Reference Assemblies\Microsoft\Framework\.NETFramework\"
 
-    set "tdir=!devdir!%tfm%"
+    set "tdir=!devdir!!tfm!"
     set "rdir=!tdir!.%~nx0"
+
+    call :dbgprint "!kTfm! !tfm!" tdir
 
     if defined kRollback (
 
-        if not exist "!rdir!" (
+        if not exist "!rdir!" if not defined kForce (
             echo There's nothing to rollback.
+            if exist "!tdir!" echo Use `-force` key to delete !kTfm! without restrictions.
             goto endpoint
         )
 
         rmdir /Q/S "!tdir!" 2>nul
-        call :dbgprint "ren " rdir tfm
-        ( ren "!rdir!" %tfm% 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
+
+        if exist "!rdir!" (
+            call :dbgprint "ren " rdir tfm
+            ( ren "!rdir!" !tfm! 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
+        )
 
         echo Rollback completed.
         goto endpoint
@@ -201,7 +229,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
         if not defined kForce (
             echo The Developer Pack was found successfully. There's nothing to do here at all.
-            echo Use `-force` key to suppress the restriction if you really know what you are doing.
+            echo Use `-force` key to suppress the restriction if you really know what you're doing.
             set /a EXIT_CODE=%ERROR_SUCCESS% & goto endpoint
         )
         call :dbgprint "Suppress found SDK " tdir
@@ -213,11 +241,15 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
     if defined kGlobal ( set "engine=hMSBuild" ) else ( set engine="%~dp0hMSBuild" )
 
     call :invoke engine "-version" || ( set /a EXIT_CODE=%ERROR_HMSBUILD_NOT_FOUND% & goto endpoint )
-    call :getFirstMsg engineVersion & call :checkEngine engineVersion 2,4,0 || (
+    ( call :getFirstMsg engineVersion & call :checkEngine engineVersion 2,4,0 ) || (
         set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
     )
 
     if "%kMode%"=="sys" (
+
+        if not "!tfm!"=="v4.0" (
+            set /a EXIT_CODE=%ERROR_TFM_UNSUPPORTED% & goto endpoint
+        )
 
         echo Apply hack using assemblies for Windows ...
 
@@ -244,23 +276,25 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     ) else if "%kMode%"=="pkg" (
 
-        set npkg=Microsoft.NETFramework.ReferenceAssemblies.net40
-        echo Apply !npkg! package ...
+        set npkg=Microsoft.NETFramework.ReferenceAssemblies.!kTfm!
+        echo Apply .NET Framework !tfm! package ...
 
-        set opkg=%~nx0.%vpkg%
+        set opkg=%~nx0.!kTfm!.%vpkg%
         if "%vpkg%"=="latest" ( set "vpkg=" ) else ( set "vpkg=/%vpkg%" )
 
         if defined kDebug set engine=!engine! -debug
-        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!"
+        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!" || (
+            set /a EXIT_CODE=%ERROR_GNT_FAIL% & goto endpoint
+        )
 
-        set "dpkg=packages\!opkg!\build\.NETFramework\%tfm%"
+        set "dpkg=packages\!opkg!\build\.NETFramework\!tfm!"
         call :dbgprint "dpkg " dpkg
 
         if not exist "!dpkg!" (
             set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
         )
 
-        ren "!tdir!" %tfm%.%~nx0 2>nul
+        ren "!tdir!" !tfm!.%~nx0 2>nul
         call :copyOrLinkFolder "!dpkg!" "!tdir!"
 
     )
@@ -283,10 +317,10 @@ if !EXIT_CODE! NEQ 0 (
         call :warn "File or path was not found, use -debug"
     )
     else if !EXIT_CODE! EQU %ERROR_NO_MODE% (
-        call :warn "Mode is not specified"
+        call :warn "Mode `-mode` is not specified, use -help"
     )
     else if !EXIT_CODE! EQU %ERROR_ENV_W% (
-        call :warn "Wrong or unknown data in specified mode"
+        call :warn "Wrong or unknown data in the specified `-mode %kMode%`"
     )
     else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED% (
         call :warn "Unsupported hMSBuild version !engineVersion!, update !hmsurl!"
@@ -296,6 +330,12 @@ if !EXIT_CODE! NEQ 0 (
     )
     else if !EXIT_CODE! EQU %ERROR_ROLLBACK% (
         call :warn "Something went wrong. Try to restore manually: !rdir!"
+    )
+    else if !EXIT_CODE! EQU %ERROR_TFM_UNSUPPORTED% (
+        call :warn ".NET Framework !tfm! is not supported in the selected `-mode %kMode%`"
+    )
+    else if !EXIT_CODE! EQU %ERROR_GNT_FAIL% (
+        call :warn "Failed network or there are no permissions to complete `-mode %kMode%`"
     )
 )
 exit /B !EXIT_CODE!
@@ -364,6 +404,19 @@ exit /B 0
     )
 exit /B 0
 :: :copyOrLinkFolder
+
+:initDefaultTfm {in:version}
+    set "_v=%~1"
+    if not defined kTfm set "kTfm=net!_v:.=!"
+    if not defined tfm set "tfm=v!_v!"
+exit /B 0
+
+:isValidTfm {in:tfm}
+    for %%t in (%tfms%) do (
+        if "%~1"=="%%t" exit /B 0
+    )
+exit /B 1
+:: :isValidTfm
 
 :warn {in:msg}
     echo   [*] WARN: %~1 >&2
