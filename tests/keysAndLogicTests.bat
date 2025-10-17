@@ -26,9 +26,9 @@ set "exec=%~3" & set "wdir=%~4"
         call a startTest "-help" || goto x
             call a msgOrFailAt 0 "" || goto x
 
-            if not defined appversionHms call a failTest "Empty *appversionHms" & goto x
-            if not "%appversionHms%"=="off" (
-                call a msgOrFailAt 1 "netfx4sdk %appversionHms%" || goto x
+            if not defined appversionNfx call a failTest "Empty *appversionNfx" & goto x
+            if not "%appversionNfx%"=="off" (
+                call a msgOrFailAt 1 "netfx4sdk %appversionNfx%" || goto x
             )
             call a msgOrFailAt 2 "github/3F" || goto x
         call a completeTest
@@ -38,9 +38,9 @@ set "exec=%~3" & set "wdir=%~4"
     ::_______ ------ ______________________________________
 
         call a startTest "-version" || goto x
-            if not defined appversionHms call a failTest "Empty *appversionHms" & goto x
-            if not "%appversionHms%"=="off" (
-                call a msgOrFailAt 1 "%appversionHms%" || goto x
+            if not defined appversionNfx call a failTest "Empty *appversionNfx" & goto x
+            if not "%appversionNfx%"=="off" (
+                call a msgOrFailAt 1 "%appversionNfx%" || goto x
             )
         call a completeTest
     ::_____________________________________________________
@@ -49,7 +49,7 @@ set "exec=%~3" & set "wdir=%~4"
     ::_______ ------ ______________________________________
 
         call a startTest "-?" || goto x
-            call a msgOrFailAt 1 "netfx4sdk %appversionHms%" || goto x
+            call a msgOrFailAt 1 "netfx4sdk %appversionNfx%" || goto x
             call a msgOrFailAt 2 "github/3F" || goto x
         call a completeTest
     ::_____________________________________________________
@@ -58,7 +58,7 @@ set "exec=%~3" & set "wdir=%~4"
     ::_______ ------ ______________________________________
 
         call a startTest "/?" || goto x
-            call a msgOrFailAt 1 "netfx4sdk %appversionHms%" || goto x
+            call a msgOrFailAt 1 "netfx4sdk %appversionNfx%" || goto x
             call a msgOrFailAt 2 "github/3F" || goto x
         call a completeTest
     ::_____________________________________________________
@@ -67,7 +67,7 @@ set "exec=%~3" & set "wdir=%~4"
     ::_______ ------ ______________________________________
 
         call a startTest "-h" || goto x
-            call a msgOrFailAt 1 "netfx4sdk %appversionHms%" || goto x
+            call a msgOrFailAt 1 "netfx4sdk %appversionNfx%" || goto x
             call a msgOrFailAt 2 "github/3F" || goto x
         call a completeTest
     ::_____________________________________________________
@@ -75,32 +75,34 @@ set "exec=%~3" & set "wdir=%~4"
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode" 1 || goto x
-            call a msgOrFailAt 1 "Incorrect key or value for `-mode`" || goto x
+        call a startTest "-mode" 1200 || goto x
+            call a msgOrFailAt 1 "Mode '' is not allowed. Use one of system sys package pkg system-or-package sys-or-pkg package-or-system pkg-or-sys" || goto x
+            call a msgOrFailAt 2 "[*] WARN: Invalid key or value for '-mode'" || goto x
         call a completeTest
     ::_____________________________________________________
 
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode notrealmode" 1 || goto x
-            call a msgOrFailAt 1 "Incorrect key or value for `-mode`" || goto x
+        call a startTest "-mode notrealmode" 1200 || goto x
+            call a msgOrFailAt 1 "Mode 'notrealmode' is not allowed. Use one of system sys package pkg system-or-package sys-or-pkg package-or-system pkg-or-sys" || goto x
+            call a msgOrFailAt 2 "[*] WARN: Invalid key or value for '-mode'" || goto x
         call a completeTest
     ::_____________________________________________________
 
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-notrealkey" 1 || goto x
-            call a msgOrFailAt 1 "Incorrect key or value for `-notrealkey`" || goto x
+        call a startTest "-notrealkey" 1200 || goto x
+            call a msgOrFailAt 1 "[*] WARN: Invalid key or value for '-notrealkey'" || goto x
         call a completeTest
     ::_____________________________________________________
 
 
     ::_______ ------ ______________________________________
 
-        call a startTest "qwertyvalue" 1 || goto x
-            call a msgOrFailAt 1 "Incorrect key or value for `qwertyvalue`" || goto x
+        call a startTest "qwertyvalue" 1200 || goto x
+            call a msgOrFailAt 1 "[*] WARN: Invalid key or value for 'qwertyvalue'" || goto x
         call a completeTest
     ::_____________________________________________________
 

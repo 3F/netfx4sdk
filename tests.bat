@@ -11,10 +11,13 @@ setlocal
     if exist "bin\Release\raw\" (
 
         set "rdir=..\bin\Release\raw\"
+        set "nfxLocalServer=..\bin\Release\\"
 
     ) else if exist ".sha1" (
 
         set "rdir=..\"
+        call srv.create >nul
+        set "nfxLocalServer=..\\"
 
     ) else goto buildError
 

@@ -16,7 +16,7 @@ set "core=%~2"
 call a isNotEmptyOrWhitespaceOrFail core || exit /B1
 call a isNotEmptyOrWhitespaceOrFail rdir || exit /B1
 
-call a initAppVersion Hms
+call a initAppVersion Nfx
 
 echo.
 call a cprint 0E  ----------------------
@@ -29,6 +29,9 @@ if "!failedTotal!" LSS "1" set /a failedTotal=0
 
 :::::::::::::::::: :::::::::::::: :::::::::::::::::::::::::
 :: Tests
+
+    echo. & call a print "Tests - 'PkgTests'"
+    call .\PkgTests gcount failedTotal "tests\gnt.bat" "%rdir%"
 
     echo. & call a print "Tests - 'keysAndLogicTests'"
     call .\keysAndLogicTests gcount failedTotal "%core%" "%rdir%"

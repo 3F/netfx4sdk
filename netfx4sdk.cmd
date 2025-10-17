@@ -33,14 +33,14 @@ echo ....
 echo Keys
 echo.
 echo  -mode {value}
-echo    * system            - (Recommended) Hack using assemblies for windows.
-echo    * package           - Apply obsolete remote package. Read [About modes] below.
-echo    * sys               - Alias to `system`
-echo    * pkg               - Alias to `package`
-echo    * system-or-package - Fallback for `system`. Use `package` if `system` failed.
-echo    * package-or-system - Fallback for `package`. Use `system` if `package` failed.
-echo    * sys-or-pkg        - Alias to `system-or-package`
-echo    * pkg-or-sys        - Alias to `package-or-system`
+echo    * system            - (Recommended) Hack using assemblies for Windows.
+echo    * package           - Apply remote package. Read [About modes] below.
+echo    * sys               - Alias to 'system'.
+echo    * pkg               - Alias to 'package'.
+echo    * system-or-package - Fallback to 'system'. Use 'package' if 'system' failed.
+echo    * package-or-system - Fallback to 'package'. Use 'system' if 'package' failed.
+echo    * sys-or-pkg        - Alias to 'system-or-package'.
+echo    * pkg-or-sys        - Alias to 'package-or-system'.
 echo.
 echo. -tfm {version}
 echo    * 4.0 - Process for .NET Framework 4.0 (default)
@@ -64,15 +64,15 @@ echo.
 echo ...........
 echo About modes
 echo.
-echo `-mode sys` highly recommended because
-echo  [++] All modules are under windows support.
+echo '-mode sys' highly recommended because:
+echo  [++] All modules are under Windows support.
 echo  [+] It does not require internet connection (portable).
 echo  [+] No decompression required (faster) compared to package mode.
 echo  [-] This is behavior-based hack;
 echo      Report or please fix us if something:
 echo      https://github.com/3F/netfx4sdk
 echo.
-echo `-mode pkg` will try to apply obsolete package to the environment.
+echo '-mode pkg' will try to apply remote package to the environment.
 echo  [-] Officially dropped support since VS2022.
 echo  [-] Requires internet connection to receive ~30 MB via GetNuTool.
 echo  [-] Requires decompression of received data to 178 MB before use.
@@ -130,93 +130,103 @@ set key=!arg[%idx%]!
 
     :: Available keys
 
-    if [!key!]==[-debug] (
-
+    if [!key!]==[-debug]
+    (
         set kDebug=1
-
         goto continue
-    ) else if [!key!]==[-mode] ( set /a "idx+=1" & call :eval arg[!idx!] v
+    )
+    else if [!key!]==[-mode]
+    ( set /a "idx+=1" & call :eval arg[!idx!] v
 
-        call :isValidV !v! tModes || ( echo Mode !v! is not allowed. Use one of %tModes%>&2 & goto errkey )
+        call :isValidV !v! tModes || ( echo Mode '!v!' is not allowed. Use one of %tModes%>&2 & goto errkey )
 
         :: aliases
 
-        if "!v!"=="system" (
+        if "!v!"=="system"
+        (
             set "kMode=sys"
-
-        ) else if "!v!"=="package" (
+        )
+        else if "!v!"=="package"
+        (
             set "kMode=pkg"
-
-        ) else if "!v!"=="system-or-package" (
+        )
+        else if "!v!"=="system-or-package"
+        (
             set "kMode=sys-or-pkg"
-
-        ) else if "!v!"=="package-or-system" (
+        )
+        else if "!v!"=="package-or-system"
+        (
             set "kMode=pkg-or-sys"
-
-        ) else ( set "kMode=!v!" )
+        )
+        else ( set "kMode=!v!" )
 
         :: fallback
 
-        if "!kMode!"=="sys-or-pkg" (
+        if "!kMode!"=="sys-or-pkg"
+        (
             set "kMode=sys"
             set "kFallback=pkg"
-
-        ) else if "!kMode!"=="pkg-or-sys" (
+        )
+        else if "!kMode!"=="pkg-or-sys"
+        (
             set "kMode=pkg"
             set "kFallback=sys"
         )
-
         goto continue
-    ) else if [!key!]==[-rollback] (
-        
+    )
+    else if [!key!]==[-rollback]
+    (
         set kRollback=1
-
         goto continue
-    ) else if [!key!]==[-pkg-version] ( set /a "idx+=1" & call :eval arg[!idx!] v
+    )
+    else if [!key!]==[-pkg-version]
+    ( set /a "idx+=1" & call :eval arg[!idx!] v
 
         set vpkg=!v!
         call :dbgprint "set package version:" v
-
         goto continue
-    ) else if [!key!]==[-version] ( 
-
+    )
+    else if [!key!]==[-version]
+    (
         @echo $core.version$
         goto endpoint
-
-    ) else if [!key!]==[-no-mklink] (
-
+    )
+    else if [!key!]==[-no-mklink]
+    (
         set kNoMklink=1
-
         goto continue
-    ) else if [!key!]==[-stub] (
-
+    )
+    else if [!key!]==[-stub]
+    (
         set kStub=1
-
         goto continue
-    ) else if [!key!]==[-global] (
-
+    )
+    else if [!key!]==[-global]
+    (
         set kGlobal=1
-
         goto continue
-    ) else if [!key!]==[-force] ( 
-
+    )
+    else if [!key!]==[-force]
+    (
         set kForce=1
-
         goto continue
-    ) else if [!key!]==[-tfm] ( set /a "idx+=1" & call :eval arg[!idx!] v
-        
-        call :isValidV !v! tfms || ( echo Version !v! is not allowed. Use one of %tfms%>&2 & goto errkey )
+    )
+    else if [!key!]==[-tfm]
+    ( set /a "idx+=1" & call :eval arg[!idx!] v
+
+        call :isValidV !v! tfms || ( echo Version '!v!' is not allowed. Use one of %tfms%>&2 & goto errkey )
 
         set "kTfm=net!v:.=!"
         set "tfm=v!v!"
 
         goto continue
-    ) else (
-        ::&:
+    )
+    else
+    (
         :errkey
-        call :warn "Invalid key or value for `!key!`"
+        call :warn "Invalid key or value for '!key!'"
         set /a EXIT_CODE=%ERROR_INVALID_KEY_OR_VALUE%
-        goto endpoint  ::&:
+        goto endpoint  ::~:
     )
 
 :continue
@@ -239,41 +249,43 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
     call :dbgprint "!kTfm! !tfm!" tdir
 
-    if defined kRollback (
-
-        if not exist "!rdir!" if not defined kForce (
+    if defined kRollback
+    (
+        if not exist "!rdir!" if not defined kForce
+        (
             echo There's nothing to rollback.
-            if exist "!tdir!" echo Use `-force` key to delete !kTfm! without restrictions.
+            if exist "!tdir!" echo Use '-force' key to delete !kTfm! without restrictions.
             goto endpoint
         )
 
         call :stub "rmdir" /Q/S "!tdir!" 2>nul
 
-        if exist "!rdir!" (
+        if exist "!rdir!"
+        (
             call :dbgprint "ren " rdir tfm
             ( call :stub "ren" "!rdir!" !tfm! 2>nul ) || ( set /a EXIT_CODE=%ERROR_ROLLBACK% & goto endpoint )
         )
 
         echo Rollback completed.
         goto endpoint
-
     )
 
-    if exist "!rdir!" (
+    if exist "!rdir!"
+    (
         echo %~nx0 has already been applied before. There's nothing to do anymore.
-        echo Use `-rollback` key to re-apply with another mode if needed.
+        echo Use '-rollback' key to re-apply with another mode if needed.
         exit /B 0
     )
 
-    if exist "!tdir!\mscorlib.dll" (
-
-        if not defined kForce (
+    if exist "!tdir!\mscorlib.dll"
+    (
+        if not defined kForce
+        (
             echo The Developer Pack was found successfully. There's nothing to do here at all.
-            echo Use `-force` key to suppress the restriction if you really know what you're doing.
+            echo Use '-force' key to suppress the restriction if you really know what you're doing.
             set /a EXIT_CODE=%ERROR_SUCCESS% & goto endpoint
         )
         call :dbgprint "Suppress found SDK " tdir
-
     )
 
     if not defined kMode ( set /a EXIT_CODE=%ERROR_NO_MODE% & goto endpoint )
@@ -281,14 +293,16 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
     if defined kGlobal ( set "engine=hMSBuild" ) else ( set engine="%~dp0hMSBuild" )
 
     call :invoke engine "-version" || ( set /a EXIT_CODE=%ERROR_HMSBUILD_NOT_FOUND% & goto endpoint )
-    ( call :getFirstMsg engineVersion & call :checkEngine engineVersion 2,4,0 ) || (
-        set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
-    )
+
+    ( call :getFirstMsg engineVersion & call :checkEngine engineVersion 2,4,0 ) ||
+        (
+            set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
+        )
 
 :activateMode
 
-    if "!kMode!"=="sys" (
-
+    if "!kMode!"=="sys"
+    (
         if not "!tfm!"=="v4.0" (
             set /a EXIT_CODE=%ERROR_TFM_UNSUPPORTED% & goto endpoint
         )
@@ -316,9 +330,9 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set "xdir=!tdir!\PermissionSets" & call :stub "mkdir" "!xdir!" 2>nul
         set content=^<PermissionSet version="1" class="System.Security.PermissionSet" Unrestricted="true" /^>
         call :fStub content "!xdir!\FullTrust.xml"
-
-    ) else if "!kMode!"=="pkg" (
-
+    )
+    else if "!kMode!"=="pkg"
+    (
         set npkg=Microsoft.NETFramework.ReferenceAssemblies.!kTfm!
         echo Apply .NET Framework !tfm! package ...
 
@@ -326,9 +340,10 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         if "%vpkg%"=="latest" ( set "vpkg=" ) else ( set "vpkg=/%vpkg%" )
 
         if defined kDebug set engine=!engine! -debug
-        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!" || (
-            set /a EXIT_CODE=%ERROR_GNT_FAIL% & goto endpoint
-        )
+        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!" ||
+            (
+                set /a EXIT_CODE=%ERROR_GNT_FAIL% & goto endpoint
+            )
 
         set "dpkg=packages\!opkg!\build\.NETFramework\!tfm!"
         call :dbgprint "dpkg " dpkg
@@ -339,7 +354,6 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
 
         call :stub "ren" "!tdir!" !tfm!.%~nx0 2>nul
         call :copyOrLinkFolder "!dpkg!" "!tdir!"
-
     )
 
 echo Done.
@@ -356,33 +370,42 @@ if !EXIT_CODE! NEQ 0 (
     call :warn "Failed: !EXIT_CODE!"
     set "hmsurl=https://github.com/3F/hMSBuild"
 
-    if !EXIT_CODE! EQU %ERROR_PATH_NOT_FOUND% (
+    if !EXIT_CODE! EQU %ERROR_PATH_NOT_FOUND%
+    (
         call :warn "File or path was not found, use -debug"
     )
-    else if !EXIT_CODE! EQU %ERROR_NO_MODE% (
-        call :warn "Mode `-mode` is not specified, use -help"
+    else if !EXIT_CODE! EQU %ERROR_NO_MODE%
+    (
+        call :warn "Mode '-mode' is not specified, use -help"
     )
-    else if !EXIT_CODE! EQU %ERROR_ENV_W% (
-        call :warn "Wrong or unknown data in the specified `-mode !kMode!`"
+    else if !EXIT_CODE! EQU %ERROR_ENV_W%
+    (
+        call :warn "Wrong or unknown data in the specified '-mode !kMode!'"
     )
-    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED% (
+    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_UNSUPPORTED%
+    (
         call :warn "Unsupported hMSBuild version !engineVersion!, update !hmsurl!"
     )
-    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_NOT_FOUND% (
+    else if !EXIT_CODE! EQU %ERROR_HMSBUILD_NOT_FOUND%
+    (
         call :warn "hMSBuild is not found. Try -global key or visit !hmsurl!"
     )
-    else if !EXIT_CODE! EQU %ERROR_ROLLBACK% (
+    else if !EXIT_CODE! EQU %ERROR_ROLLBACK%
+    (
         call :warn "Something went wrong. Try to restore manually: !rdir!"
     )
-    else if !EXIT_CODE! EQU %ERROR_TFM_UNSUPPORTED% (
-        call :warn ".NET Framework !tfm! is not supported in the selected `-mode !kMode!`"
+    else if !EXIT_CODE! EQU %ERROR_TFM_UNSUPPORTED%
+    (
+        call :warn ".NET Framework !tfm! is not supported in the selected '-mode !kMode!'"
     )
-    else if !EXIT_CODE! EQU %ERROR_GNT_FAIL% (
-        call :warn "Failed network or there are no permissions to complete `-mode !kMode!`"
+    else if !EXIT_CODE! EQU %ERROR_GNT_FAIL%
+    (
+        call :warn "Failed network or there are no permissions to complete '-mode !kMode!'"
     )
 
-    if defined kFallback (
-        echo.& echo Switch to !kFallback! mode for second attempt due to `-mode !kMode!-or-!kFallback!`
+    if defined kFallback
+    (
+        echo.& echo Switch to !kFallback! mode for second attempt due to '-mode !kMode!-or-!kFallback!'
         set "kMode=!kFallback!" & set "kFallback="
         goto activateMode
     )
@@ -404,7 +427,8 @@ exit /B !EXIT_CODE!
 
     if defined kNoMklink (
         call :stub %_x% >nul || exit /B %ERROR_ENV_W%
-    ) else (
+    )
+    else (
         call :stub %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
     )
 exit /B 0
@@ -417,7 +441,8 @@ exit /B 0
     ::   (4) - Patch. Must be greater or equal to.
     ::  !!1  - Error code 1 if unsupported version.
 
-    for /F "tokens=1,2,3 delims=." %%a in ("!%~1!") do (
+    for /F "tokens=1,2,3 delims=." %%a in ("!%~1!") do
+    (
         if %%a LSS %~2 exit /B 1
         if %%a EQU %~2 (
             if %%b LSS %~3 exit /B 1
@@ -430,7 +455,8 @@ exit /B 0
 :copyOrLinkFileDbg {in:src} {in:dst}
     if defined kDebug (
         call :copyOrLinkFile "%~1" "%~2"
-    ) else (
+    )
+    else (
         call :copyOrLinkFile "%~1" "%~2" 2>nul>nul
     )
 exit /B 0
@@ -439,7 +465,8 @@ exit /B 0
 :copyOrLinkFile {in:src} {in:dst}
     if defined kNoMklink (
         call :xcp "%~1" "%~2*"
-    ) else (
+    )
+    else (
         call :stub "mklink" "%~2" "%~1"
     )
 exit /B 0
@@ -448,7 +475,8 @@ exit /B 0
 :copyOrLinkFolder {in:src} {in:dst}
     if defined kNoMklink (
         call :xcp "%~1" "%~2" +
-    ) else (
+    )
+    else (
         call :stub "mklink" /J "%~2" "%~1"
     )
 exit /B 0
@@ -474,8 +502,9 @@ exit /B 0
 :: :warn
 
 :dbgprint {in:str} [{in:uneval1}, [{in:uneval2}]]
-    if defined kDebug (
-        :: NOTE: delayed `dmsg` because symbols like `)`, `(` ... requires protection after expansion. L-32
+    if defined kDebug
+    (
+        :: NOTE: delayed 'dmsg' because symbols like ')', '(' ... requires protection after expansion. L-32
         set "dmsg=%~1" & echo [ %TIME% ] !dmsg! !%2! !%3!
     )
 exit /B 0
@@ -488,12 +517,12 @@ exit /B 0
 
     :: unfortunately, we also need to protect the equal sign '='
     :_eqp
-    for /F "tokens=1* delims==" %%a in ("!_ieqargs!") do (
+    for /F "tokens=1* delims==" %%a in ("!_ieqargs!") do
+    (
         if "%%~b"=="" (
-
             call :nqa %1 !_ieqargs! %3 & exit /B 0
-
-        ) else set _ieqargs=%%a E %%b
+        )
+        else set _ieqargs=%%a E %%b
     )
     goto _eqp
     :nqa
@@ -507,7 +536,7 @@ exit /B 0
         set %vname%[!idx!]=%~2
         set %vname%{!idx!}=%2
 
-        :: NOTE1: `shift & ...` may be evaluated incorrectly without {newline} symbols;
+        :: NOTE1: 'shift & ...' may be evaluated incorrectly without {newline} symbols;
         ::         Either shift + {newline} + ... + if %~3 ...; or if %~4 ... shift & ...
 
         :: NOTE2: %~4 because the next %~3 is reserved for {out:index}
@@ -542,15 +571,16 @@ exit /B 0
 
     set "cmd=!%~1! %~2"
 
-    :: NOTE: Use delayed !cmd! instead of %cmd% inside `for /F` due to
-    :: `=` (equal sign, which cannot be escaped as `^=` when runtime evaluation %cmd%)
+    :: NOTE: Use delayed !cmd! instead of %cmd% inside 'for /F' due to
+    :: '=' (equal sign, which cannot be escaped as '^=' when runtime evaluation %cmd%)
 
     call :dbgprint "invoke: " cmd
 
     set "cmd=!cmd! 2^>^&1 ^&call echo %%^^ERRORLEVEL%%"
     set /a msgIdx=0
 
-    for /F "tokens=*" %%i in ('!cmd!') do 2>nul (
+    for /F "tokens=*" %%i in ('!cmd!') do 2>nul
+    (
         set /a msgIdx+=1
         set msg[!msgIdx!]=%%i
         call :dbgprint "# !msgIdx!  : %%i"
