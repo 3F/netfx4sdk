@@ -58,7 +58,7 @@ set "exec=%~3" & set "wdir=%~4"
             call a unsetFile netfx4sdk.cmd
 
             call a startTest "+netfx4sdk/%appversionNfx%" || goto x
-                call a findInStreamOrFail "hMSBuild/%appversionNfx% ... "
+                call a findInStreamOrFail "netfx4sdk/%appversionNfx% ... "
                 call a checkFs %netfx4sdkCurrent%.html || goto x
                 call a checkFs hMSBuild.bat || goto x
                 call a checkFs netfx4sdk.cmd || goto x

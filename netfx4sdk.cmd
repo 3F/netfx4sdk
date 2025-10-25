@@ -121,6 +121,7 @@ set /a ERROR_ROLLBACK=1100
 set /a ERROR_INVALID_KEY_OR_VALUE=1200
 set /a ERROR_TFM_UNSUPPORTED=1202
 set /a ERROR_GNT_FAIL=1400
+set /a ERROR_CMD_BAD_COMMAND_OR_FILE=9009
 
 set /a idx=0
 
@@ -309,7 +310,19 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_HMSBUILD_UNSUPPORTED% & goto endpoint
         )
 
+    if not defined kNoMklink
+    (
+        mklink 2>nul>nul
+            & if !ERRORLEVEL! EQU %ERROR_CMD_BAD_COMMAND_OR_FILE%
+            (
+                echo NOTE: '-no-mklink' is activated because links are not supported in this environment.
+                set "kNoMklink=2"
+            )
+    )
+
 :activateMode
+
+    call :dbgprint "kNoMklink " kNoMklink
 
     if "!kMode!"=="sys"
     (
@@ -320,14 +333,19 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         echo Apply hack using assemblies for Windows ...
 
         call :invoke engine "-no-less-4 -no-vswhere -no-vs -only-path -notamd64"
-        set /a EXIT_CODE=%ERRORLEVEL% & if !EXIT_CODE! NEQ 0 goto endpoint
+        set /a EXIT_CODE=!ERRORLEVEL! & if !EXIT_CODE! NEQ 0 goto endpoint
 
         call :getFirstMsg lDir
-        call :xcp "!tdir!" "!rdir!" + || (
+        call :xcpDbg "!tdir!" "!rdir!" + || (
             set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
         )
 
         set lDir=!lDir:msbuild.exe=!
+
+        :: NOTE: older xcopy doesn't like double slashes with single slashes, e.g. dir1\dir2\\file1 results as "File not found" /F-42
+        :: that's why we need to fix the path from hmsbuild 2.5 (and older)
+        set lDir=!lDir:\\=\!
+
         call :dbgprint "lDir " lDir
         if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
@@ -380,7 +398,8 @@ goto endpoint
 :: Post-actions
 :endpoint
 
-if !EXIT_CODE! NEQ 0 (
+if !EXIT_CODE! NEQ 0
+(
     call :warn "Failed: !EXIT_CODE!"
     set "hmsurl=https://github.com/3F/hMSBuild"
 
@@ -434,20 +453,29 @@ exit /B !EXIT_CODE!
 :: Functions
 :: ::
 
+:xcpDbg {in:src} {in:dst} {in:subdirs}
+    if not defined kStub if not defined kDebug (
+        call :xcp "%~1" "%~2" "%~3" >nul
+        exit /B
+    )
+    call :xcp "%~1" "%~2" "%~3"
+exit /B
+:: :xcpDbg
+
 :xcp {in:src} {in:dst} {in:subdirs}
     ( set "src=%~1" & set "dst=%~2" & set "subdirs=%~3" )
     if defined subdirs ( set "subdirs=/E" ) else ( set "subdirs=" )
 
-    call :dbgprint "xcp !subdirs!" src dst
-    set _x=xcopy "%src%" "%dst%" !subdirs!/I/Q/H/K/O/X  ::&:
+    if not defined kStub ( call :dbgprint "xcp !subdirs!" src dst )
+    set _x=xcopy "%src%" "%dst%" !subdirs!/I/Q/H/K/O/X/Y  ::&:
 
     :: NOTE: possible "Invalid switch - /B" in older xcopy
 
     if defined kNoMklink (
-        call :stub %_x% >nul || exit /B %ERROR_ENV_W%
+        call :stub %_x% || exit /B %ERROR_ENV_W%
     )
     else (
-        call :stub %_x%/B 2>nul>nul || %_x% >nul || exit /B %ERROR_ENV_W%
+        call :stub %_x%/B 2>nul || call :stub %_x% || exit /B %ERROR_ENV_W%
     )
 exit /B 0
 :: :xcp
@@ -471,18 +499,17 @@ exit /B 0
 :: :checkEngine
 
 :copyOrLinkFileDbg {in:src} {in:dst}
-    if defined kDebug (
-        call :copyOrLinkFile "%~1" "%~2"
+    if not defined kStub if not defined kDebug (
+        call :copyOrLinkFile "%~1" "%~2" >nul
+        exit /B
     )
-    else (
-        call :copyOrLinkFile "%~1" "%~2" 2>nul>nul
-    )
-exit /B 0
+    call :copyOrLinkFile "%~1" "%~2"
+exit /B
 :: :copyOrLinkFileDbg
 
 :copyOrLinkFile {in:src} {in:dst}
     if defined kNoMklink (
-        call :xcp "%~1" "%~2*"
+        call :xcpDbg "%~1" "%~2*"
     )
     else (
         call :stub "mklink" "%~2" "%~1"
@@ -492,7 +519,7 @@ exit /B 0
 
 :copyOrLinkFolder {in:src} {in:dst}
     if defined kNoMklink (
-        call :xcp "%~1" "%~2" +
+        call :xcpDbg "%~1" "%~2" +
     )
     else (
         call :stub "mklink" /J "%~2" "%~1"
@@ -616,7 +643,7 @@ exit /B 0
 :stub {in:app} {in:*}
     ( set "app=%~1" & shift )
     set appArgs=%1 %2 %3 %4 %5 %6 %7 %8 %9
-    if not defined kStub ( !app! !appArgs! & exit /B )
+    if not defined kStub ( call !app! !appArgs! & exit /B )
     echo !app! !appArgs!
 exit /B 0
 :: :stub

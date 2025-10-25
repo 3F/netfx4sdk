@@ -4,11 +4,13 @@ An attempt to provide *.NET Framework 4.x* Developer Packs (SDKs) support for mo
 
 * Various modes;
 * Rollback support (changes can be easily undone at any time);
-* Pure batch-script;
+* Pure LF protected batch-script (.bat/.cmd) that does NOT require *powershell* or *dotnet-cli*;
 * Portable and flexible solution;
+  * Internet connection is NOT needed for system mode;
+  * Lightweight and text-based, about ~10 KB + ~18 KB;
 * Free and Open source https://github.com/3F/netfx4sdk
 
-Based on [hMSBuild](https://github.com/3F/hMSBuild) + [GetNuTool](https://github.com/3F/GetNuTool)
+Based on [hMSBuild.bat](https://github.com/3F/hMSBuild) + [GetNuTool](https://github.com/3F/GetNuTool)
 
 ```r
 Copyright (c) 2021-2025  Denis Kuzmin <x-3F@outlook.com> github/3F
@@ -34,6 +36,38 @@ But *netfx4sdk* will try to eliminate this artificial limitation by a single com
 
 * Here's [**result**](https://ci.appveyor.com/project/3Fs/vssolutionbuildevent/builds/42060343#L6) using *netfx4sdk 1.0* for the same clean VS2022 VM image above.
 
+### List of supported SDKs
+
+1.x
+
+* .NET Framework 4.0
+
+2.0+
+
+* .NET Framework 2.0
+* .NET Framework 3.5
+* .NET Framework 4.0
+* .NET Framework 4.5
+  * .NET Framework 4.5.1
+  * .NET Framework 4.5.2
+* .NET Framework 4.6
+  * .NET Framework 4.6.1
+  * .NET Framework 4.6.2
+* .NET Framework 4.7
+  * .NET Framework 4.7.1
+  * .NET Framework 4.7.2
+* .NET Framework 4.8
+  * .NET Framework 4.8.1
+
+### LF / CRLF
+
+Starting with 2.0, *netfx4sdk.cmd* now fully supports LF and uses this by default instead of CRLF.
+
+It means *.gitattributes* control for CRLF in *netfx4sdk.cmd* is not necessary anymore in cases when *core.autocrlf=input* etc.
+See related: https://github.com/3F/hMSBuild/issues/2
+
+Note: only *hMSBuild.bat* 2.5+ have the same protection. Full editions ([*hMSBuild.full.bat*](https://github.com/3F/hMSBuild/pull/11)) even for 2.5+ are not protected due to incorrect shiftings in cmd processor when switching to LF.
+
 ## Usage
 
 `-mode sys` Hack using assemblies for Windows. Highly *recommended* because:
@@ -50,7 +84,7 @@ But *netfx4sdk* will try to eliminate this artificial limitation by a single com
 * [-] Requires decompression of received data to 178 MB before use.
 * [+] Well known official behavior.
 
-### Keys
+### -help
 
 ```bat
  -mode {value}
@@ -101,6 +135,24 @@ netfx4sdk -mode sys-or-pkg
 * Using GetNuTool: [`gnt`](https://3F.github.io/GetNuTool/releases/latest/gnt/)`~netfx4sdk`
 * Using hMSBuild: [`hMSBuild`](https://3F.github.io/hMSBuild/releases/latest/gnt/)`-GetNuTool ~netfx4sdk`
 * GitHub Releases: https://github.com/3F/netfx4sdk/releases/latest
+
+## Integration with scripts
+
+### batch (.bat, .cmd)
+
+*netfx4sdk.cmd* is a pure batch script. Therefore, you can easily combine this even inside other batch scripts. Or invoke this externally, there's nothing special:
+
+```bat
+set sdk=netfx4sdk -mode package -force -global -no-mklink
+
+call %sdk% -tfm 4.5.2 || (
+    echo Failed>&2
+    call %sdk% -tfm 4.5.1 || goto fallback
+)
+```
+
+More actual examples can be found in [tests/](tests/) folder.
+
 
 ## Build and Use from source
 

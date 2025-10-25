@@ -15,18 +15,20 @@
 
         * Various modes;
         * Rollback support (changes can be easily undone at any time);
-        * Pure batch-script;
+        * Pure LF protected batch-script (.bat/.cmd) that does NOT require powershell or dotnet-cli;
         * Portable and flexible solution;
+          * Internet connection is NOT needed for system mode;
+          * Lightweight and text-based, about ~10 KB + ~18 KB;
         * Free and Open source https://github.com/3F/netfx4sdk
 
-        Based on hMSBuild + GetNuTool
+        Based on hMSBuild.bat + GetNuTool
 
         ```
         gnt ~netfx4sdk/$-version-$
         ```
 
         {build_info}</description>
-    <summary>An attempt to provide .NET Framework 4.x Developer Packs (SDKs) support for modern Visual Studio / MSBuild / etc.</summary>
+    <summary>Developer Packs (SDKs) NETFX 4.X+ Visual Studio / MSBuild / other modern tools</summary>
     <tags>netfx SDK NETFramework VisualStudio bat batch distributing GetNuTool hMSBuild netfx4sdk tools</tags>
     <releaseNotes> changelog: https://github.com/3F/netfx4sdk/blob/master/changelog.txt </releaseNotes>
     <copyright>Copyright (c) 2021-2025  Denis Kuzmin &lt;x-3F@outlook.com&gt; github/3F </copyright>
