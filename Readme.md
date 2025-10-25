@@ -16,11 +16,27 @@ Based on [hMSBuild.bat](https://github.com/3F/hMSBuild) + [GetNuTool](https://gi
 Copyright (c) 2021-2025  Denis Kuzmin <x-3F@outlook.com> github/3F
 ```
 
-[`gnt`](https://3F.github.io/GetNuTool/releases/latest/gnt/)`~netfx4sdk`
-
 [ 「 ❤ 」 ](https://3F.github.io/fund) [![License](https://img.shields.io/badge/License-MIT-74A5C2.svg)](https://github.com/3F/netfx4sdk/blob/master/License.txt)
 [![Build status](https://ci.appveyor.com/api/projects/status/7d2jae48fii2m99o/branch/master?svg=true)](https://ci.appveyor.com/project/3Fs/netfx4sdk/branch/master)
 [![release](https://img.shields.io/github/release/3F/netfx4sdk.svg)](https://github.com/3F/netfx4sdk/releases/latest)
+
+## Quick start
+
+* Using GetNuTool: [`gnt`](https://3F.github.io/GetNuTool/releases/latest/gnt/)`~netfx4sdk`
+* Using hMSBuild: [`hMSBuild`](https://3F.github.io/hMSBuild/releases/latest/gnt/)`-GetNuTool ~netfx4sdk`
+* GitHub Releases: https://github.com/3F/netfx4sdk/releases/latest
+
+For example: [`gnt`](https://3F.github.io/GetNuTool/releases/latest/gnt/)`~netfx4sdk & netfx4sdk -mode sys-or-pkg`
+
+Or build and use from source:
+
+```bat
+git clone https://github.com/3F/netfx4sdk.git src
+cd src & build & cd bin\Release\raw\
+netfx4sdk -help
+```
+
+Note: starting with 2.0, in addition to `-rollback`, you can also use `-stub` key to check the commands for all planned changes without actually affecting the file system.
 
 ## Why netfx4sdk
 
@@ -130,12 +146,6 @@ call netfx4sdk -mode sys || call netfx4sdk -mode pkg
 netfx4sdk -mode sys-or-pkg
 ```
 
-## Get netfx4sdk
-
-* Using GetNuTool: [`gnt`](https://3F.github.io/GetNuTool/releases/latest/gnt/)`~netfx4sdk`
-* Using hMSBuild: [`hMSBuild`](https://3F.github.io/hMSBuild/releases/latest/gnt/)`-GetNuTool ~netfx4sdk`
-* GitHub Releases: https://github.com/3F/netfx4sdk/releases/latest
-
 ## Integration with scripts
 
 ### batch (.bat, .cmd)
@@ -152,15 +162,6 @@ call %sdk% -tfm 4.5.2 || (
 ```
 
 More actual examples can be found in [tests/](tests/) folder.
-
-
-## Build and Use from source
-
-```bat
-git clone https://github.com/3F/netfx4sdk.git src
-cd src & build & cd bin\Release\raw\
-netfx4sdk -help
-```
 
 ### .sha1 official distribution
 

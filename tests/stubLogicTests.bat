@@ -51,7 +51,7 @@ set "exec=%~3" & set "wdir=%~4"
 
             call a findInStreamOrFail "[*] WARN: Failed: 1202" 5,n || goto x
             call a findInStreamOrFail "Switch to pkg mode for second attempt due to '-mode sys-or-pkg'" 7,n || goto x
-            call a findInStreamOrFail "Apply .NET Framework v4.5 package ..." 8,n || goto x
+            call a findInStreamOrFail "Applying .NET Framework v4.5 package ..." 8,n || goto x
             call :failIfInStreamExcept "\\" "# 1  : " || goto x
         call a completeTest
     ::_____________________________________________________
@@ -62,7 +62,7 @@ set "exec=%~3" & set "wdir=%~4"
         call a startTest "-debug -mode system -tfm 4.5 -force" 1202 || goto x
             call a msgOrFailAt 1 "run a forced action: sys" || goto x
             call a msgOrFailAt 2 "net45 v4.5" || goto x
-            call a failIfInStream "Apply .NET Framework v4.5 package" || goto x
+            call a failIfInStream "Applying .NET Framework v4.5 package" || goto x
             call :failIfInStreamExcept "\\" "# 1  : " || goto x
         call a completeTest
     ::_____________________________________________________
@@ -156,6 +156,36 @@ set "exec=%~3" & set "wdir=%~4"
     ::_____________________________________________________
 
 
+    ::_______ ------ ______________________________________
+
+        call a startTest "-debug -mode pkg -tfm 4.5 -sdk-root " 1200 || goto x
+            call a msgOrFailAt 1 "[*] WARN: Invalid key or value for '-sdk-root'" || goto x
+        call a completeTest
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        call a startTest "-debug -mode pkg -tfm 4.5 -sdk-root notrealdir" 1203 || goto x
+           call a findInStreamOrFail "[*] WARN: The path specified in '-sdk-root' does not exist: notrealdir. Try as -sdk-root `notrealdir`" 1,n || goto x
+        call a completeTest
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        mkdir sdkDirTest1 2>nul>nul
+        call a startTest "-debug -mode pkg -tfm 4.5 -sdk-root sdkDirTest1" || goto x
+           call a msgOrFailAt 2 "net45 v4.5 sdkDirTest1\v4.5" || goto x
+        call a completeTest
+
+        call a startTest "-debug -mode pkg -sdk-root sdkDirTest1\ -tfm 4.6.2" || goto x
+           call a msgOrFailAt 2 "net462 v4.6.2 sdkDirTest1\v4.6.2" || goto x
+        call a completeTest
+        rmdir sdkDirTest1 2>nul>nul
+    ::_____________________________________________________
+
+
 :::::::::::::
 call :cleanup
 
@@ -180,7 +210,7 @@ exit /B 0
     call a msgOrFailAt 1 "run a forced action: sys" || exit /B 1
     call a msgOrFailAt 2 "net40 v4.0" || exit /B 1
 
-    call a findInStreamOrFail "Apply hack using assemblies for Windows ..." 4,n || exit /B 1
+    call a findInStreamOrFail "Applying hack using assemblies for Windows ..." 4,n || exit /B 1
     call a findInStreamOrFail "-no-less-4 -no-vswhere -no-vs -only-path -notamd64" 5,n || exit /B 1
 
     set /a n+=1
@@ -189,12 +219,14 @@ exit /B 0
     call a msgOrFailAt !n! "# 2  : 0" || exit /B 1
 
     set /a n+=1
+    call a findInStreamOrFail "mkdir " !n!,n || exit /B 1
+    call a msgOrFailAt !n! "v4.0" || exit /B 1
+
+    set /a n+=1
     call a msgOrFailAt !n! "xcopy " || exit /B 1
     call a msgOrFailAt !n! "v4.0.netfx4sdk.cmd` /E/I/Q/H/K/O/X/Y" || exit /B 1
 
     set /a n+=2
-    call a msgOrFailAt !n! "mkdir " || exit /B 1
-    set /a n+=1
     call a msgOrFailAt !n! "%~1 " || exit /B 1
     set /a n+=100
     call a findInStreamOrFail "%~1 " !n!,n || exit /B 1
@@ -216,8 +248,12 @@ exit /B 0
     call a findInStreamOrFail "[*] WARN: Failed: 1202" 5,n || exit /B 1
     call a findInStreamOrFail "Switch to pkg mode for second attempt due to '-mode sys-or-pkg'" 6,n || exit /B 1
 
-    call a findInStreamOrFail "Apply .NET Framework v4.5 package ..." 8,n || exit /B 1
+    call a findInStreamOrFail "Applying .NET Framework v4.5 package ..." 8,n || exit /B 1
     call a findInStreamOrFail "dpkg  packages\netfx4sdk.cmd.net45.1.0.3\build\.NETFramework\v4.5" 10,n || exit /B 1
+
+    set /a n+=1
+    call a findInStreamOrFail "mkdir " !n!,n || exit /B 1
+    call a msgOrFailAt !n! "v4.5" || exit /B 1
 
     set /a n+=1
     call a msgOrFailAt !n! "ren " || exit /B 1
@@ -240,7 +276,7 @@ exit /B 0
     call a failIfInStream "run a forced action:" || exit /B 1
     call a failIfInStream "net40 v4.0" || exit /B 1
 
-    call a findInStreamOrFail "Apply hack using assemblies for Windows ..." 1,n || exit /B 1
+    call a findInStreamOrFail "Applying hack using assemblies for Windows ..." 1,n || exit /B 1
     call a findInStreamOrFail "%~1 " 100,n || exit /B 1
 
     set /a n+=1

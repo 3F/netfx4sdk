@@ -52,6 +52,7 @@ echo  -rollback   - Rollback applied modifications.
 echo  -global     - To use the global toolset, like hMSBuild.
 echo  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
 echo  -stub       - Use a stub instead of actual processing.
+echo  -sdk-root   - Custom path to the SDK root directory.
 echo.
 echo  -pkg-version {arg} - Specific package version in pkg mode. Where {arg}:
 echo      * 1.0.3 ...
@@ -106,6 +107,7 @@ set "kTfm="
 set "tfm="
 set "kStub="
 set "kFallback="
+set "kSdkRoot="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -120,6 +122,7 @@ set /a ERROR_UNAUTHORIZED_ACCESS=1004
 set /a ERROR_ROLLBACK=1100
 set /a ERROR_INVALID_KEY_OR_VALUE=1200
 set /a ERROR_TFM_UNSUPPORTED=1202
+set /a ERROR_SDK_ROOT_NOT_EXIST=1203
 set /a ERROR_GNT_FAIL=1400
 set /a ERROR_CMD_BAD_COMMAND_OR_FILE=9009
 
@@ -205,6 +208,17 @@ set key=!arg[%idx%]!
         set kStub=1
         goto continue
     )
+    else if [!key!]==[-sdk-root]
+    ( set /a "idx+=1" & call :eval arg[!idx!] v
+
+        set "kSdkRoot=!v!"
+
+        if not defined kSdkRoot ( goto errkey )
+        if not exist "!kSdkRoot!" ( set /a EXIT_CODE=%ERROR_SDK_ROOT_NOT_EXIST% & goto endpoint )
+
+        if not "!kSdkRoot:~-1!"=="\" ( set "kSdkRoot=!kSdkRoot!\" )
+        goto continue
+    )
     else if [!key!]==[-global]
     (
         set kGlobal=1
@@ -251,9 +265,18 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         call :dbgprint "run!kForce! action:" kMode
     )
 
+    :: F-44
     set "devdir=%ProgramFiles(x86)%"
     if not exist "!devdir!" set "devdir=%ProgramFiles%"
-    set "devdir=!devdir!\Reference Assemblies\Microsoft\Framework\.NETFramework\"
+
+    if defined kSdkRoot
+    (
+        set "devdir=!kSdkRoot!"
+    )
+    else
+    (
+        set "devdir=!devdir!\Reference Assemblies\Microsoft\Framework\.NETFramework\"
+    )
 
     set "tdir=!devdir!!tfm!"
     set "rdir=!tdir!.%~nx0"
@@ -330,12 +353,14 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_TFM_UNSUPPORTED% & goto endpoint
         )
 
-        echo Apply hack using assemblies for Windows ...
+        echo Applying hack using assemblies for Windows ...
 
         call :invoke engine "-no-less-4 -no-vswhere -no-vs -only-path -notamd64"
         set /a EXIT_CODE=!ERRORLEVEL! & if !EXIT_CODE! NEQ 0 goto endpoint
 
         call :getFirstMsg lDir
+        call :stub "mkdir" "!tdir!" 2>nul
+
         call :xcpDbg "!tdir!" "!rdir!" + || (
             set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
         )
@@ -349,7 +374,6 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         call :dbgprint "lDir " lDir
         if not exist "!lDir!" ( set /a EXIT_CODE=%ERROR_PATH_NOT_FOUND% & goto endpoint )
 
-        call :stub "mkdir" "!tdir!" 2>nul
         for /F "tokens=*" %%i in ('dir /B "!lDir!*.dll"') do call :copyOrLinkFileDbg "!lDir!%%i" "!tdir!\%%i"
         for /F "tokens=*" %%i in ('dir /B "!lDir!WPF\*.dll"') do call :copyOrLinkFileDbg "!lDir!WPF\%%i" "!tdir!\%%i"
 
@@ -364,7 +388,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
     else if "!kMode!"=="pkg"
     (
         set npkg=Microsoft.NETFramework.ReferenceAssemblies.!kTfm!
-        echo Apply .NET Framework !tfm! package ...
+        echo Applying .NET Framework !tfm! package ...
 
         set opkg=%~nx0.!kTfm!.%vpkg%
         if "%vpkg%"=="latest" ( set "vpkg=" ) else ( set "vpkg=/%vpkg%" )
@@ -381,6 +405,8 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         if not exist "!dpkg!" (
             set /a EXIT_CODE=%ERROR_ENV_W% & goto endpoint
         )
+
+        call :stub "mkdir" "!tdir!" 2>nul
 
         call :stub "ren" "!tdir!" !tfm!.%~nx0 2>nul || (
             set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
@@ -439,8 +465,12 @@ if !EXIT_CODE! NEQ 0
     (
         call :warn "Unauthorized access. Make sure you have read/write permissions to the folders listed in '-debug'. Try run %~nx0 as administrator."
     )
+    else if !EXIT_CODE! EQU %ERROR_SDK_ROOT_NOT_EXIST%
+    (
+        call :warn "The path specified in '-sdk-root' does not exist: !kSdkRoot!. Try as -sdk-root `!kSdkRoot!` or make sure."
+    )
 
-    if defined kFallback
+    if defined kFallback if defined tfm
     (
         echo.& echo Switch to !kFallback! mode for second attempt due to '-mode !kMode!-or-!kFallback!'
         set "kMode=!kFallback!" & set "kFallback="
@@ -542,7 +572,9 @@ exit /B 1
 :: :isValidV
 
 :warn {in:msg}
-    echo   [*] WARN: %~1 >&2
+    set _wrnmsg=%~1
+    set _wrnmsg=!_wrnmsg:`="! ::&:
+    echo   [*] WARN: !_wrnmsg! >&2
 exit /B 0
 :: :warn
 

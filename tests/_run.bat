@@ -29,9 +29,11 @@ if "!failedTotal!" LSS "1" set /a failedTotal=0
 
 :::::::::::::::::: :::::::::::::: :::::::::::::::::::::::::
 :: Tests
+call :setup
+
 
     echo. & call a print "Tests - 'stubLogicTests'"
-    call .\stubLogicTests gcount failedTotal "%core% -stub" "%rdir%"
+    call .\stubLogicTests gcount failedTotal "%core% -stub -sdk-root .\sdks" "%rdir%"
 
     echo. & call a print "Tests - 'PkgTests'"
     call .\PkgTests gcount failedTotal "tests\gnt.bat" "%rdir%"
@@ -40,7 +42,8 @@ if "!failedTotal!" LSS "1" set /a failedTotal=0
     call .\keysAndLogicTests gcount failedTotal "%core%" "%rdir%"
 
 
-::::::::::::::::::
+call :cleanup
+:::::::::::::
 ::
 echo.
 call a cprint 0E ----------------
@@ -59,3 +62,11 @@ exit /B 0
     echo.
     call a cprint 0C "Tests failed." >&2
 exit /B 1
+
+:setup
+    mkdir sdks 2>nul>nul
+exit /B 0
+
+:cleanup
+    call a unsetDir sdks
+exit /B 0
