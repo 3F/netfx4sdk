@@ -7,7 +7,7 @@ An attempt to provide *.NET Framework 4.x* Developer Packs (SDKs) support for mo
 * Pure LF protected batch-script (.bat/.cmd) that does NOT require *powershell* or *dotnet-cli*;
 * Portable and flexible solution;
   * Internet connection is NOT needed for system mode;
-  * Lightweight and text-based, about ~10 KB + ~18 KB;
+  * Lightweight and text-based, about ~11 KB + ~18 KB;
 * Free and Open source https://github.com/3F/netfx4sdk
 
 Based on [hMSBuild.bat](https://github.com/3F/hMSBuild) + [GetNuTool](https://github.com/3F/GetNuTool)
@@ -123,6 +123,8 @@ Note: only *hMSBuild.bat* 2.5+ have the same protection. Full editions ([*hMSBui
  -global     - To use the global toolset, like hMSBuild.
  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
  -stub       - Use a stub instead of actual processing.
+ -sdk-root   - Custom path to the SDK root directory.
+ -no-acl     - Do not copy ownership and ACL information when direct copying.
 
  -pkg-version {arg} - Specific package version in pkg mode. Where {arg}:
      * 1.0.3 ...
@@ -144,6 +146,7 @@ netfx4sdk -mode pkg -tfm 4.5
 netfx4sdk -global -mode pkg -tfm 3.5 -no-mklink -force
 call netfx4sdk -mode sys || call netfx4sdk -mode pkg
 netfx4sdk -mode sys-or-pkg
+netfx4sdk -mode pkg -tfm 3.5 -sdk-root "path\to" -no-mklink -no-acl
 ```
 
 ## Integration with scripts

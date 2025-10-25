@@ -18,7 +18,7 @@
         * Pure LF protected batch-script (.bat/.cmd) that does NOT require powershell or dotnet-cli;
         * Portable and flexible solution;
           * Internet connection is NOT needed for system mode;
-          * Lightweight and text-based, about ~10 KB + ~18 KB;
+          * Lightweight and text-based, about ~11 KB + ~18 KB;
         * Free and Open source https://github.com/3F/netfx4sdk
 
         Based on hMSBuild.bat + GetNuTool

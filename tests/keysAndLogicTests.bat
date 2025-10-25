@@ -109,17 +109,21 @@ set "exec=%~3" & set "wdir=%~4"
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode sys -tfm 4.5 -force" 1202 || goto x
+        mkdir sdkDirTest2 2>nul>nul
+        call a startTest "-mode sys -tfm 4.5 -force -sdk-root sdkDirTest2" 1202 || goto x
             call a findInStreamOrFail "[*] WARN: .NET Framework v4.5 is not supported in the selected '-mode sys'" 2,n || goto x
         call a completeTest
+        rmdir sdkDirTest2 2>nul>nul
     ::_____________________________________________________
 
 
     ::_______ ------ ______________________________________
 
-        call a startTest "-mode sys -tfm 4.6.2 -force" 1202 || goto x
+        mkdir sdkDirTest2 2>nul>nul
+        call a startTest "-mode sys -sdk-root sdkDirTest2 -tfm 4.6.2 -force" 1202 || goto x
             call a findInStreamOrFail "[*] WARN: .NET Framework v4.6.2 is not supported in the selected '-mode sys'" 2,n || goto x
         call a completeTest
+        rmdir sdkDirTest2 2>nul>nul
     ::_____________________________________________________
 
 

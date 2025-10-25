@@ -50,7 +50,7 @@ set "exec=%~3" & set "wdir=%~4"
             call a msgOrFailAt 2 "net45 v4.5" || goto x
 
             call a findInStreamOrFail "[*] WARN: Failed: 1202" 5,n || goto x
-            call a findInStreamOrFail "Switch to pkg mode for second attempt due to '-mode sys-or-pkg'" 7,n || goto x
+            call a findInStreamOrFail "Switch to 'pkg' mode for second attempt due to '-mode sys-or-pkg'" 7,n || goto x
             call a findInStreamOrFail "Applying .NET Framework v4.5 package ..." 8,n || goto x
             call :failIfInStreamExcept "\\" "# 1  : " || goto x
         call a completeTest
@@ -72,7 +72,7 @@ set "exec=%~3" & set "wdir=%~4"
 
         call a startTest "-debug -mode sys-or-pkg -tfm 4.5 -pkg-version 1.0.3 -force" || goto x
             if not defined mklinkSupport (
-                call a findInStreamOrFail "NOTE: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
+                call a findInStreamOrFail "[*] WARN: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
                 call :test45SysOrPkgForce "xcopy" || goto x
 
             ) else (
@@ -94,7 +94,7 @@ set "exec=%~3" & set "wdir=%~4"
 
         call a startTest "-debug -mode system -force" || goto x
             if not defined mklinkSupport (
-                call a findInStreamOrFail "NOTE: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
+                call a findInStreamOrFail "[*] WARN: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
                 call :test40SystemForce "xcopy" || goto x
 
             ) else (
@@ -138,7 +138,7 @@ set "exec=%~3" & set "wdir=%~4"
 
         call a startTest "-mode system -force" || goto x
             if not defined mklinkSupport (
-                call a findInStreamOrFail "NOTE: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
+                call a findInStreamOrFail "[*] WARN: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
                 call :test40SystemForceNoDebug "xcopy" || goto x
 
             ) else (
@@ -183,6 +183,42 @@ set "exec=%~3" & set "wdir=%~4"
            call a msgOrFailAt 2 "net462 v4.6.2 sdkDirTest1\v4.6.2" || goto x
         call a completeTest
         rmdir sdkDirTest1 2>nul>nul
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        mkdir "sdk Dir\Test 2" 2>nul>nul
+        call a startTest "-debug -mode pkg -tfm 4.5 -sdk-root `sdk Dir\Test 2` -no-mklink -no-acl" || goto x
+           call a msgOrFailAt 2 "net45 v4.5 sdk Dir\Test 2\v4.5" || goto x
+        call a completeTest
+        rmdir "sdk Dir\Test 2" 2>nul>nul
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        mkdir sdkPkgOrSys 2>nul>nul
+        call a startTest "-debug -mode pkg-or-sys -tfm 4.0 -pkg-version 0.1 -sdk-root sdkPkgOrSys" || goto x
+            if not defined mklinkSupport (
+                call a findInStreamOrFail "[*] WARN: '-no-mklink' is activated because links are not supported in this environment." 1,n || goto x
+                call :test40PkgOrSys "xcopy" || goto x
+
+            ) else (
+                call :test40PkgOrSys "mklink" || goto x
+            )
+        call a completeTest
+        rmdir sdkPkgOrSys 2>nul>nul
+    ::_____________________________________________________
+
+
+    ::_______ ------ ______________________________________
+
+        mkdir sdkPkgOrSys 2>nul>nul
+        call a startTest "-debug -mode package-or-system -tfm 4.0 -no-mklink -pkg-version 0.1 -sdk-root sdkPkgOrSys" || goto x
+            call :test40PkgOrSys "xcopy" || goto x
+        call a completeTest
+        rmdir sdkPkgOrSys 2>nul>nul
     ::_____________________________________________________
 
 
@@ -246,7 +282,7 @@ exit /B 0
     call a msgOrFailAt 1 "set package version: 1.0.3" || exit /B 1
     call a msgOrFailAt 2 "run a forced action: sys" || exit /B 1
     call a findInStreamOrFail "[*] WARN: Failed: 1202" 5,n || exit /B 1
-    call a findInStreamOrFail "Switch to pkg mode for second attempt due to '-mode sys-or-pkg'" 6,n || exit /B 1
+    call a findInStreamOrFail "Switch to 'pkg' mode for second attempt due to '-mode sys-or-pkg'" 6,n || exit /B 1
 
     call a findInStreamOrFail "Applying .NET Framework v4.5 package ..." 8,n || exit /B 1
     call a findInStreamOrFail "dpkg  packages\netfx4sdk.cmd.net45.1.0.3\build\.NETFramework\v4.5" 10,n || exit /B 1
@@ -268,6 +304,39 @@ exit /B 0
         call a msgOrFailAt !n! "xcopy `packages\netfx4sdk.cmd.net45.1.0.3" || exit /B 1
         call a msgOrFailAt !n! "/E/I/Q/H/K/O/X/Y" || exit /B 1
     )
+exit /B 0
+
+:test40PkgOrSys {in:mklinkOrXcp}
+
+    call :failIfInStreamExcept "\\" "# 1  : " || exit /B 1
+    call a msgOrFailAt 1 "set package version: 0.1" || exit /B 1
+    call a msgOrFailAt 2 "run action: pkg" || exit /B 1
+
+    call a findInStreamOrFail "Applying .NET Framework v4.0 package ..." 5,n || exit /B 1
+    call a findInStreamOrFail "[*] WARN: Failed: 1400" 6,n || exit /B 1
+    set /a n+=1
+    call a msgOrFailAt !n! "[*] WARN: Failed network or there are no permissions to complete '-mode pkg'" || exit /B 1
+
+    set /a n+=1
+    call a findInStreamOrFail "Switch to 'sys' mode for second attempt due to '-mode pkg-or-sys'" !n!,n || exit /B 1
+
+    set /a n+=1
+    call a findInStreamOrFail "Applying hack using assemblies for Windows ..." 5,n || exit /B 1
+    set /a n+=1
+    call a findInStreamOrFail "mkdir `sdkPkgOrSys\v4.0`" !n!,n || exit /B 1
+    set /a n+=1
+    call a msgOrFailAt !n! "xcopy `sdkPkgOrSys\v4.0` `sdkPkgOrSys\v4.0.netfx4sdk.cmd`" || exit /B 1
+
+    set /a n+=100
+    call a findInStreamOrFail "%~1 " !n!,n || exit /B 1
+
+    set /a n+=1
+    call a findInStreamOrFail "mkdir " !n!,n || exit /B 1
+    set /a n+=2
+    call a msgOrFailAt !n! "mkdir " || exit /B 1
+
+    set /a n+=2
+    call a msgOrFailAt !n! "Done." || exit /B 1
 exit /B 0
 
 :test40SystemForceNoDebug {in:mklinkOrXcp}

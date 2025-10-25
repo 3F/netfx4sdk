@@ -53,6 +53,7 @@ echo  -global     - To use the global toolset, like hMSBuild.
 echo  -no-mklink  - Use direct copying instead of mklink (junction / symbolic).
 echo  -stub       - Use a stub instead of actual processing.
 echo  -sdk-root   - Custom path to the SDK root directory.
+echo  -no-acl     - Do not copy ownership and ACL information when direct copying.
 echo.
 echo  -pkg-version {arg} - Specific package version in pkg mode. Where {arg}:
 echo      * 1.0.3 ...
@@ -88,6 +89,7 @@ echo %~n0 -mode pkg -tfm 4.5
 echo %~n0 -global -mode pkg -tfm 3.5 -no-mklink -force
 echo call %~n0 -mode sys ^|^| call %~n0 -mode pkg
 echo %~n0 -mode sys-or-pkg
+echo %~n0 -mode pkg -tfm 3.5 -sdk-root "path\to" -no-mklink -no-acl
 
 goto endpoint
 
@@ -108,6 +110,7 @@ set "tfm="
 set "kStub="
 set "kFallback="
 set "kSdkRoot="
+set "kNoAcl="
 
 set /a ERROR_SUCCESS=0
 set /a ERROR_FAILED=1
@@ -118,6 +121,7 @@ set /a ERROR_ENV_W=1001
 set /a ERROR_HMSBUILD_UNSUPPORTED=1002
 set /a ERROR_HMSBUILD_NOT_FOUND=1003
 set /a ERROR_UNAUTHORIZED_ACCESS=1004
+set /a ERROR_XCP_W=1005
 
 set /a ERROR_ROLLBACK=1100
 set /a ERROR_INVALID_KEY_OR_VALUE=1200
@@ -201,6 +205,11 @@ set key=!arg[%idx%]!
     else if [!key!]==[-no-mklink]
     (
         set kNoMklink=1
+        goto continue
+    )
+    else if [!key!]==[-no-acl]
+    (
+        set kNoAcl=1
         goto continue
     )
     else if [!key!]==[-stub]
@@ -338,7 +347,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         mklink 2>nul>nul
             & if !ERRORLEVEL! EQU %ERROR_CMD_BAD_COMMAND_OR_FILE%
             (
-                echo NOTE: '-no-mklink' is activated because links are not supported in this environment.
+                call :warn "'-no-mklink' is activated because links are not supported in this environment."
                 set "kNoMklink=2"
             )
     )
@@ -365,7 +374,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
             set /a EXIT_CODE=%ERROR_UNAUTHORIZED_ACCESS% & goto endpoint
         )
 
-        set lDir=!lDir:msbuild.exe=!
+        set lDir=!lDir:MSBuild.exe=!
 
         :: NOTE: older xcopy doesn't like double slashes with single slashes, e.g. dir1\dir2\\file1 results as "File not found" /F-42
         :: that's why we need to fix the path from hmsbuild 2.5 (and older)
@@ -393,8 +402,10 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         set opkg=%~nx0.!kTfm!.%vpkg%
         if "%vpkg%"=="latest" ( set "vpkg=" ) else ( set "vpkg=/%vpkg%" )
 
-        if defined kDebug set engine=!engine! -debug
-        call !engine! -GetNuTool /p:ngpackages="!npkg!!vpkg!:!opkg!" ||
+        set gnt=!engine!
+        if defined kDebug set gnt=!engine! -debug
+
+        call !gnt! -GetNuTool "!npkg!!vpkg!:!opkg!" ||
             (
                 set /a EXIT_CODE=%ERROR_GNT_FAIL% & goto endpoint
             )
@@ -414,9 +425,7 @@ set /a "idx+=1" & if %idx% LSS !amax! goto loopargs
         call :copyOrLinkFolder "!dpkg!" "!tdir!"
     )
 
-echo Done.
-
-set /a EXIT_CODE=%ERROR_SUCCESS%
+set /a EXIT_CODE=!ERRORLEVEL!
 goto endpoint
 
 
@@ -424,8 +433,12 @@ goto endpoint
 :: Post-actions
 :endpoint
 
-if !EXIT_CODE! NEQ 0
-(
+    if !EXIT_CODE! EQU %ERROR_SUCCESS%
+    (
+        echo Done.
+        exit /B %ERROR_SUCCESS%
+    )
+
     call :warn "Failed: !EXIT_CODE!"
     set "hmsurl=https://github.com/3F/hMSBuild"
 
@@ -463,20 +476,32 @@ if !EXIT_CODE! NEQ 0
     )
     else if !EXIT_CODE! EQU %ERROR_UNAUTHORIZED_ACCESS%
     (
-        call :warn "Unauthorized access. Make sure you have read/write permissions to the folders listed in '-debug'. Try run %~nx0 as administrator."
+        call :warn "Unauthorized access. Make sure you have read/write permissions to the folders listed in '-debug'. Try run %~nx0 as administrator or use '-no-acl'"
     )
     else if !EXIT_CODE! EQU %ERROR_SDK_ROOT_NOT_EXIST%
     (
         call :warn "The path specified in '-sdk-root' does not exist: !kSdkRoot!. Try as -sdk-root `!kSdkRoot!` or make sure."
     )
+    else if !EXIT_CODE! EQU %ERROR_XCP_W%
+    (
+        call :warn "Failed XCOPY. Try '-no-acl' key to avoid `Access denied` errors; Use '-debug' / '-stub' for details."
+    )
+    else if !EXIT_CODE! EQU %ERROR_INVALID_KEY_OR_VALUE%
+    (
+        exit /B !EXIT_CODE!
+    )
+    else
+    (
+        call :warn "Something went wrong. Use '-debug' and/or '-stub' keys to inspect the problem."
+    )
 
     if defined kFallback if defined tfm
     (
-        echo.& echo Switch to !kFallback! mode for second attempt due to '-mode !kMode!-or-!kFallback!'
+        echo.& echo Switch to '!kFallback!' mode for second attempt due to '-mode !kMode!-or-!kFallback!'
         set "kMode=!kFallback!" & set "kFallback="
         goto activateMode
     )
-)
+
 exit /B !EXIT_CODE!
 
 
@@ -497,17 +522,20 @@ exit /B
     if defined subdirs ( set "subdirs=/E" ) else ( set "subdirs=" )
 
     if not defined kStub ( call :dbgprint "xcp !subdirs!" src dst )
-    set _x=xcopy "%src%" "%dst%" !subdirs!/I/Q/H/K/O/X/Y  ::&:
+    if defined kNoAcl ( set "_acl=" ) else ( set "_acl=/O/X" )
 
-    :: NOTE: possible "Invalid switch - /B" in older xcopy
+    set _x=xcopy "%src%" "%dst%" !subdirs!/I/Q/H/K!_acl!/Y  ::&:
 
-    if defined kNoMklink (
-        call :stub %_x% || exit /B %ERROR_ENV_W%
+    if defined kNoMklink
+    (
+        call :stub !_x! || exit /B %ERROR_XCP_W%
     )
-    else (
-        call :stub %_x%/B 2>nul || call :stub %_x% || exit /B %ERROR_ENV_W%
+    else
+    (
+        :: NOTE: possible "Invalid switch - /B" in older xcopy
+        call :stub !_x!/B 2>nul || call :stub !_x! || exit /B %ERROR_XCP_W%
     )
-exit /B 0
+exit /B
 :: :xcp
 
 :checkEngine
@@ -544,7 +572,7 @@ exit /B
     else (
         call :stub "mklink" "%~2" "%~1"
     )
-exit /B 0
+exit /B
 :: :copyOrLinkFile
 
 :copyOrLinkFolder {in:src} {in:dst}
@@ -554,7 +582,7 @@ exit /B 0
     else (
         call :stub "mklink" /J "%~2" "%~1"
     )
-exit /B 0
+exit /B
 :: :copyOrLinkFolder
 
 :initDefaultTfm {in:version}

@@ -71,6 +71,9 @@ exit /B 1
     set "tArgs=%~2"
     if "%~3"=="" ( set /a exCode=0 ) else set /a exCode=%~3
 
+    :: netfx4sdk, F-47
+    call :cleanStream
+
     if "!tArgs!" NEQ "" set tArgs=!tArgs:`="!
 
     set /a gcount+=1
@@ -198,6 +201,11 @@ exit /B 0
     if not "%~1"=="" echo %~1
     call :printStream failed
     echo. & call :cprint 47 [Failed]
+exit /B 0
+
+:cleanStream
+    for /L %%i in (0,1,!msgIdx!) do set "msg[%%i]="
+    set /a msgIdx=0
 exit /B 0
 
 :printStream
