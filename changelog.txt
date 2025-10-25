@@ -2,6 +2,51 @@
 netfx4sdk - https://github.com/3F/netfx4sdk
 - - - - - - - - - - - - - - - - - - - - -  
 
+[2.0] 2025.10.25
+
+    * NEW: New SDKs support via `-tfm` key:
+            + 2.0 3.5 4.0 4.5 4.6 4.7 4.8 4.5.1 4.5.2 4.6.1 4.6.2 4.7.1 4.7.2 4.8.1
+            
+    * NEW: New modes: `system-or-package` and `package-or-system`;
+           Fallback to 'system' to use 'package' if 'system' failed. And vice versa.
+           Aliases: `sys-or-pkg` and `pkg-or-sys`
+            
+    * NEW: Implemented `-no-mklink` for all modes;
+           To use direct copying instead of mklink (junction / symbolic).
+           
+    * NEW: Implemented `-stub` key to use a stub instead of actual processing.
+    
+    * NEW: Implemented `-no-acl` to control ownership and ACL info.
+    
+    * NEW: Implemented `-sdk-root` custom path to the SDK root directory.
+    
+    * NEW: Official nuget package, netfx4sdk:
+           https://www.nuget.org/packages/netfx4sdk/
+           
+    * NEW: +.pkg.install.bat v1 support in netfx4sdk nuget packages.
+           ```
+           gnt ~netfx4sdk
+           ```
+           ```
+           gnt *netfx4sdk/2.0
+           ```
+           Syntax and relevant documentation:
+               hMSBuild -GetNuTool -help
+               hMSBuild -GetNuTool ~/p:use=documentation
+           Or visit https://github.com/3F/GetNuTool
+            
+    * FIXED: Fixed double slashes \\ for older xcopy.
+    
+    * FIXED: Invalid mklink use in WIndows XP.
+    
+    * CHANGED: Auto applying `-no-mklink` key for unsupported environments.
+    
+    * CHANGED: ERROR_UNAUTHORIZED_ACCESS check
+    
+    * CHANGED: Updated hMSBuild 2.5
+               https://github.com/3F/hMSBuild/releases/tag/2.5
+    
+
 [1.2] 2024.04.08
 
     * FIXED: sys/system and WARN: Failed: 3
